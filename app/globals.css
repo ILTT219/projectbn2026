@@ -1,0 +1,98 @@
+/* Reset cơ bản */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  background: #eef3ee;
+  color: #222;
+}
+
+/* Navbar */
+/* Navbar nổi bật hơn */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  background: linear-gradient(90deg, #1b5e20, #2e7d32);
+  padding: 18px 40px;
+
+  display: flex;
+  gap: 30px;
+  align-items: center;
+
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+nav a {
+  color: rgb(71, 255, 95);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: 0.2s ease;
+}
+
+nav a:hover {
+  opacity: 0.8;
+}
+
+/* Container */
+.container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 40px 20px;
+}
+
+/* Grid sản phẩm */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  margin-top: 30px;
+}
+
+/* Card sản phẩm */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  transition: 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.card h3 {
+  margin-bottom: 10px;
+  color: #2f6f3e;
+}
+
+.card a {
+  display: inline-block;
+  margin-top: 10px;
+  color: #2f6f3e;
+  font-weight: 500;
+}
+
+/* Trang chi tiết */
+.detail {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.detail h1 {
+  color: #2f6f3e;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  margin-top: 20px;
+  font-weight: 600;
+}
