@@ -13,6 +13,7 @@ export default function RootLayout({
           <Link href="/">Trang chủ</Link> |{" "}
           <Link href="/products">Sản phẩm</Link> |{" "}
           <Link href="/contact">Liên hệ</Link>
+          <Link href="/admin">Admin</Link>
         </nav>
         {children}
       </body>

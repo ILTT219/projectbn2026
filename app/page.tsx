@@ -1,19 +1,18 @@
 export default function Home() {
   return (
     <main style={{ padding: 40, fontFamily: "sans-serif" }}>
-      <h1>🌾 Nông Sản Sạch Việt Nam</h1>
+      <h1>🌾 OCOP Bắc Ninh</h1>
       <p>
-        Chúng tôi cung cấp nông sản sạch, hữu cơ, đảm bảo chất lượng
-        từ nông trại đến bàn ăn.
+        Chúng tôi quảng bá sản phẩm OCOP Bắc Ninh.
       </p>
 
       <section style={{ marginTop: 30 }}>
         <h2>Sản phẩm nổi bật</h2>
         <ul>
-          <li>Gạo ST25</li>
-          <li>Rau hữu cơ Đà Lạt</li>
-          <li>Thanh long Bình Thuận</li>
-          <li>Xoài cát Hòa Lộc</li>
+          <li>Mỳ gạo chũ</li>
+          <li>Hoa sâm núi Dành</li>
+          <li>Gà đồi yên thế ủ muối</li>
+          <li>Vải thiều sấy khô</li>
         </ul>
       </section>
 
