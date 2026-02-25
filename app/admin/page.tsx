@@ -4,7 +4,7 @@ import { useState } from "react"
 
 export default function AdminPage() {
   const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
+  const [category, setCategory] = useState("")
   const [price, setPrice] = useState("")
   const [message, setMessage] = useState("")
 
@@ -17,6 +17,7 @@ export default function AdminPage() {
       body: JSON.stringify({
         name,
         price: Number(price),
+        category,
       }),
     })
 
@@ -28,6 +29,7 @@ export default function AdminPage() {
       setMessage("Thêm sản phẩm thành công")
       setName("")
       setPrice("")
+      setCategory("")
     }
   }
 
@@ -46,6 +48,16 @@ export default function AdminPage() {
           />
         </div>
 
+        <div>
+          <label>Danh mục</label>
+          <br/>
+          <input
+            type="text"
+            placeholder="Danh mục"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
+        </div>
         
 
         <div style={{ marginTop: 15 }}>

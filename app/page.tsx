@@ -1,3 +1,12 @@
+import Link from "next/link"
+const category = [
+  { id: 1, name: "Nông sản"},
+  { id: 2, name: "Thảo dược"},
+  { id: 3, name: "Lưu niệm"},
+  { id: 4, name: "Đồ uống"}, 
+  { id: 5, name: "May mặc"},
+  { id: 6, name: "Dịch vụ"},
+]
 export default function Home() {
   return (
     <main style={{ padding: 40, fontFamily: "sans-serif" }}>
@@ -6,24 +15,21 @@ export default function Home() {
         Chúng tôi quảng bá sản phẩm OCOP Bắc Ninh.
       </p>
 
-      <section style={{ marginTop: 30 }}>
-        <h2>Sản phẩm nổi bật</h2>
-        <ul>
-          <li>Mỳ gạo chũ</li>
-          <li>Hoa sâm núi Dành</li>
-          <li>Gà đồi yên thế ủ muối</li>
-          <li>Vải thiều sấy khô</li>
-        </ul>
-      </section>
+      <div className="container">
+      <h1>Danh sách sản phẩm</h1>
 
-      <section style={{ marginTop: 30 }}>
-        <h2>Cam kết của chúng tôi</h2>
-        <ul>
-          <li>Không thuốc trừ sâu độc hại</li>
-          <li>Quy trình kiểm định rõ ràng</li>
-          <li>Giao hàng toàn quốc</li>
-        </ul>
-      </section>
+      <div className="grid">
+        {category.map((product) => (
+          <div key={product.id} className="card">
+            <h3>{product.name}</h3>
+
+            <Link href={`/category/${product.id}`}>
+              {product.name}
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
     </main>
   )
 }

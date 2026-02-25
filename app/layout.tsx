@@ -1,5 +1,6 @@
 import Link from "next/link"
 import "./globals.css"
+import ChatBot from "@/components/ChatBot"
 
 export default function RootLayout({
   children,
@@ -9,7 +10,8 @@ export default function RootLayout({
   return (
     <html>
       <body>
-        <nav style={{ padding: 20, background: "#f4f4f4" }}>
+        <ChatBot/>
+        <nav style={{ padding: 20, background: "#c10000" }}>
           <Link href="/">Trang chủ</Link> |{" "}
           <Link href="/products">Sản phẩm</Link> |{" "}
           <Link href="/contact">Liên hệ</Link>
