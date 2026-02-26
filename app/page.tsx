@@ -1,32 +1,38 @@
 import Link from "next/link"
+import Image from "next/image"
+
 const category = [
-  { id: 1, name: "Nông sản"},
-  { id: 2, name: "Thảo dược"},
-  { id: 3, name: "Lưu niệm"},
-  { id: 4, name: "Đồ uống"}, 
-  { id: 5, name: "May mặc"},
-  { id: 6, name: "Dịch vụ"},
+  { id: 1, name: "Lương thực"},
+  { id: 2, name: "Thực phẩm"},
+  { id: 3, name: "Dược liệu"},
+  { id: 4, name: "Thủ công mỹ nghệ"}, 
+  { id: 5, name: "Hàng tiêu dùng"},
+  { id: 6, name: "Đồ uống"},
 ]
+const banner = "https://raw.githubusercontent.com/ILTT219/Image-storage/e3bafca79afca99ee318e82959982cc5697a40b4/1.jpg"
+  const bg = "https://raw.githubusercontent.com/ILTT219/Image-storage/44a05652648c45960fc4ee78cf2e2cb0030d7840/9.jpg"
+const images: Record<number, string> = {
+  1: "https://raw.githubusercontent.com/ILTT219/Image-storage/e3bafca79afca99ee318e82959982cc5697a40b4/2.jpg",
+  2: "https://raw.githubusercontent.com/ILTT219/Image-storage/e3bafca79afca99ee318e82959982cc5697a40b4/3.jpg",
+  3: "https://raw.githubusercontent.com/ILTT219/Image-storage/e3bafca79afca99ee318e82959982cc5697a40b4/4.jpg",
+  4: "https://raw.githubusercontent.com/ILTT219/Image-storage/e3bafca79afca99ee318e82959982cc5697a40b4/5.jpg",
+  5: "https://raw.githubusercontent.com/ILTT219/Image-storage/e3bafca79afca99ee318e82959982cc5697a40b4/6.jpg",
+  6: "https://raw.githubusercontent.com/ILTT219/Image-storage/e3bafca79afca99ee318e82959982cc5697a40b4/7.jpg",
+}
 export default function Home() {
   return (
-    <main style={{ padding: 40, fontFamily: "sans-serif" }}>
-      <h1>🌾 OCOP Bắc Ninh</h1>
-      <p>
-        Chúng tôi quảng bá sản phẩm OCOP Bắc Ninh.
-      </p>
-
-      <div className="container">
-      <h1>Danh sách sản phẩm</h1>
-
+    <main style={{ fontFamily: "sans-serif" }}>
+      <section style={{ backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundPosition: "center center", backgroundRepeat: "no-repeat", height: "350px" }}>
+        <h1>Danh sách sản phẩm</h1>
+      </section>
+      
+      <div className="container" >
       <div className="grid">
         {category.map((product) => (
-          <div key={product.id} className="card">
-            <h3>{product.name}</h3>
-
-            <Link href={`/category/${product.id}`}>
-              {product.name}
-            </Link>
-          </div>
+          <Link key={product.id} href={`/category/${product.id}`}>
+            <div className="card" data-name={product.name} style={{ backgroundImage: `url(${images[product.id]})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
+            </div>
+          </Link>
         ))}
       </div>
     </div>

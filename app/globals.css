@@ -7,7 +7,7 @@
 }
 
 body {
-  background: #eef3ee;
+  background: lightgray;
   color: #222;
 }
 
@@ -44,8 +44,14 @@ nav a:hover {
   max-width: 1100px;
   margin: auto;
   padding: 40px 20px;
+  background-color: lightgray;
 }
 
+.container h1 {
+  text-align: left;
+  margin-top: 28px;
+  margin-bottom: 18px;
+}
 /* Grid sản phẩm */
 .grid {
   display: grid;
@@ -56,15 +62,37 @@ nav a:hover {
 
 /* Card sản phẩm */
 .card {
-  background: white;
+  height: 200px;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.06);
   transition: 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: 'Danh sách sản phẩm: ' attr(data-name);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  text-align: center;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .card:hover {
   transform: translateY(-5px);
+}
+
+.card:hover::before {
+  opacity: 1;
 }
 
 .card h3 {
