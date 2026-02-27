@@ -5,6 +5,11 @@ import jwt from 'jsonwebtoken'
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  // development helper: skip authentication entirely when env flag set
+  if (process.env.SKIP_ADMIN_AUTH === 'true') {
+    return NextResponse.next()
+  }
+
   // only check admin pages (excluding api routes)
   if (pathname.startsWith('/admin')) {
     // allow login page and api endpoints through

@@ -45,8 +45,9 @@ export async function POST(req: NextRequest) {
     // cookie scope to /admin so it doesn't flood other routes
     res.cookies.set('admin_token', token, {
       httpOnly: true,
-      path: '/admin',
+      path: '/',
       maxAge: 2 * 60 * 60, // 2 hours
+      sameSite: 'lax',
     })
     return res
   } catch (err: any) {

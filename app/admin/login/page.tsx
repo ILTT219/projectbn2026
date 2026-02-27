@@ -15,18 +15,30 @@ export default function AdminLoginPage() {
     setError('')
     setLoading(true)
 
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'same-origin',
+      })
 
-    setLoading(false)
-    if (res.ok) {
-      router.replace('/admin')
-    } else {
-      const data = await res.json()
-      setError(data.error || 'Login failed')
+      // consume JSON body for debugging and error display
+      const data = await res.json().catch(() => ({}))
+      console.log('Admin login response', { status: res.status, ok: res.ok, body: data })
+
+      setLoading(false)
+      if (res.ok) {
+        // cookie should be set by the server (path=/); do a full navigation
+        // so the browser includes the cookie on the request (avoid RSC prefetch)
+        window.location.href = '/admin'
+      } else {
+        setError(data.error || 'Login failed')
+      }
+    } catch (err: any) {
+      setLoading(false)
+      console.error('Login fetch error', err)
+      setError('Network error')
     }
   }
 

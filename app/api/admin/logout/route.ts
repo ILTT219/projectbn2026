@@ -4,7 +4,7 @@ export function GET(req: NextRequest) {
   const res = NextResponse.redirect('/admin/login')
   res.cookies.set('admin_token', '', {
     httpOnly: true,
-    path: '/admin',
+    path: '/',
     maxAge: 0,
   })
   return res

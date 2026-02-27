@@ -1,0 +1,126 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { Buffer } from 'buffer'
+import jwt from 'jsonwebtoken'
+
+// service role client bypasses RLS so the route can write to tables
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+export async function POST(req: NextRequest) {
+  // in development, skip auth if flag set
+  if (process.env.SKIP_ADMIN_AUTH === 'true') {
+    // continue without checking cookie
+  } else {
+    // verify admin token cookie (same check as middleware)
+    const token = req.cookies.get('admin_token')?.value
+    const secret = process.env.ADMIN_JWT_SECRET
+    if (!token || !secret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    try {
+      jwt.verify(token, secret)
+    } catch (e) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
+  try {
+    const formData = await req.formData()
+
+    const name = formData.get('name')?.toString() || ''
+    const category_id = parseInt(formData.get('category_id')?.toString() || '0')
+    const origin = formData.get('origin')?.toString() || ''
+    const description = formData.get('description')?.toString() || ''
+    const contact_address = formData.get('contact_address')?.toString() || ''
+
+    // ensure required fields
+    if (!name || !category_id) {
+      return NextResponse.json({ error: 'Name and category are required' }, { status: 400 })
+    }
+
+    // insert product
+    const { data: prodData, error: prodErr } = await supabaseAdmin
+      .from('products')
+      .insert([
+        {
+          name,
+          category_id,
+          price: 1, // fixed price placeholder
+        },
+      ])
+      .select()
+      .single()
+
+    if (prodErr || !prodData) {
+      console.error('product insert error', prodErr)
+      return NextResponse.json({ error: 'Unable to create product' }, { status: 500 })
+    }
+
+    const productId = prodData.id
+
+    // handle representative image
+    const repFile = formData.get('representative') as File | null
+    if (repFile && repFile.size) {
+      const fileName = `${productId}-representative-${Date.now()}-${repFile.name}`
+      const arrayBuffer = await repFile.arrayBuffer()
+      const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
+        .from('product-images')
+        .upload(`products/${fileName}`, Buffer.from(arrayBuffer), {
+          contentType: repFile.type,
+        })
+
+      if (!uploadErr && uploadData) {
+        const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${uploadData.path}`
+        await supabaseAdmin
+          .from('products')
+          .update({ img: url })
+          .eq('id', productId)
+      }
+    }
+
+    // handle product image gallery
+    const images = formData.getAll('images') as File[]
+      // handle product image gallery: upload all files, collect rows, then insert in one batch
+      const rowsToInsert: { product_id: number; image_url: string }[] = []
+
+      for (const file of images) {
+        if (!file || !file.size) continue
+        const fileName = `${productId}-${Date.now()}-${file.name}`
+        const arrayBuffer = await file.arrayBuffer()
+        const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
+          .from('product-images')
+          .upload(`products/${fileName}`, Buffer.from(arrayBuffer), {
+            contentType: file.type,
+          })
+
+        if (uploadErr) {
+          console.error('upload error for', file.name, uploadErr)
+          continue
+        }
+
+        if (uploadData) {
+          const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${uploadData.path}`
+          rowsToInsert.push({ product_id: productId, image_url: url })
+        }
+      }
+
+      if (rowsToInsert.length > 0) {
+        const { data: inserted, error: insertErr } = await supabaseAdmin.from('images').insert(rowsToInsert)
+        if (insertErr) {
+          console.error('images insert error', insertErr)
+          // return error so client sees it
+          return NextResponse.json({ error: 'Unable to save product images', details: insertErr.message }, { status: 500 })
+        }
+          const insertedAny: any = inserted
+          console.log('inserted images rows count', Array.isArray(insertedAny) ? insertedAny.length : 0)
+        }
+
+        return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error('products route error', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}

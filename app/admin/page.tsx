@@ -1,7 +1,7 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useRef } from "react"
-import { supabase } from "@/lib/supabase"
 
 const categories = [
   { id: 1, name: "Lương thực" },
@@ -38,109 +38,43 @@ export default function AdminPage() {
     setLoading(true)
 
     try {
-      // 1. Thêm sản phẩm vào database
-      const { data: productData, error: productError } = await supabase
-        .from("products")
-        .insert([
-          {
-            name: name.trim(),
-            category_id: parseInt(categoryId),
-            price: 1,
-          },
-        ])
-        .select()
+      const formData = new FormData()
+      formData.append('name', name.trim())
+      formData.append('category_id', categoryId)
+      formData.append('origin', origin)
+      formData.append('description', description)
+      formData.append('contact_address', contactAddress)
 
-      if (productError) {
-        setMessage("Lỗi khi thêm sản phẩm: " + productError.message)
-        setLoading(false)
-        return
-      }
-
-      const productId = productData?.[0]?.id
-      console.log("Product created with ID:", productId)
-
-      if (!productId) {
-        setMessage("Lỗi: Không lấy được ID sản phẩm")
-        setLoading(false)
-        return
-      }
-
-      let representativeImageUrl = ""
-
-      // 2. Upload ảnh đại diện (lưu vào cột img của products)
       if (representativeFile) {
-        const fileName = `${productId}-representative-${Date.now()}-${representativeFile.name}`
-        console.log("Uploading representative image:", fileName)
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(`products/${fileName}`, representativeFile)
-
-        if (uploadError) {
-          console.error("Upload error:", uploadError)
-          setMessage("Lỗi upload ảnh đại diện: " + uploadError.message)
-        } else {
-          representativeImageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${uploadData.path}`
-          console.log("Uploaded image URL:", representativeImageUrl)
-          
-          // Cập nhật cột img của sản phẩm
-          const { error: updateError } = await supabase
-            .from("products")
-            .update({ img: representativeImageUrl })
-            .eq("id", productId)
-
-          if (updateError) {
-            console.error("Update product error:", updateError)
-            setMessage("Lỗi cập nhật ảnh vào products: " + updateError.message)
-          } else {
-            console.log("Product image updated successfully")
-          }
-        }
+        formData.append('representative', representativeFile)
       }
+      productFiles.forEach((file) => formData.append('images', file))
 
-      // 3. Upload các ảnh thực tế vào bảng images
-      for (const file of productFiles) {
-        const fileName = `${productId}-${Date.now()}-${file.name}`
-        console.log("Uploading product image:", fileName)
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(`products/${fileName}`, file)
+      const res = await fetch('/api/admin/products', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+      })
+      const data = await res.json().catch(() => ({}))
+      console.log('create-product response', res.status, data)
 
-        if (uploadError) {
-          console.error("Upload error:", uploadError)
-        } else {
-          const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${uploadData.path}`
-          console.log("Inserting image to DB:", imageUrl)
-          
-          const { error: insertError } = await supabase.from("images").insert([
-            {
-              product_id: productId,
-              image_url: imageUrl,
-            },
-          ])
-
-          if (insertError) {
-            console.error("Insert image error:", insertError)
-          } else {
-            console.log("Image inserted successfully")
-          }
-        }
+      if (!res.ok) {
+        setMessage(data.error || 'Lỗi khi thêm sản phẩm')
+      } else {
+        setMessage('✓ Thêm sản phẩm thành công!')
+        setName('')
+        setCategoryId('1')
+        setOrigin('')
+        setDescription('')
+        setRepresentativeFile(null)
+        setProductFiles([])
+        setContactAddress('')
+        if (repFileInputRef.current) repFileInputRef.current.value = ''
+        if (prodFileInputRef.current) prodFileInputRef.current.value = ''
       }
-
-      setMessage("✓ Thêm sản phẩm thành công!")
-      setName("")
-      setCategoryId("1")
-      setOrigin("")
-      setDescription("")
-      setRepresentativeFile(null)
-      setProductFiles([])
-      setContactAddress("")
-      if (repFileInputRef.current) repFileInputRef.current.value = ""
-      if (prodFileInputRef.current) prodFileInputRef.current.value = ""
     } catch (err: any) {
-      console.error("Catch error:", err)
-      setMessage("Lỗi: " + err.message)
+      console.error('Submit error', err)
+      setMessage('Lỗi: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -197,7 +131,9 @@ export default function AdminPage() {
   return (
     <div style={{ padding: "40px 20px", maxWidth: 700, margin: "0 auto" }}>
       <h1 style={{ color: "#2f6f3e", marginBottom: 30 }}>Quản trị - Thêm sản phẩm</h1>
-
+      <Link href="https://ai.studio/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0" target="_blank" rel="noopener noreferrer" style={{ marginBottom: 24, display: "inline-block", color: "#2e7d32" }}>
+        Tạo ảnh đại diện
+      </Link>
       <form onSubmit={handleSubmit} style={formStyle}>
         {/* Tên sản phẩm */}
         <div style={fieldStyle}>
@@ -271,7 +207,7 @@ export default function AdminPage() {
 
         {/* Hình ảnh sản phẩm */}
         <div style={fieldStyle}>
-          <label style={labelStyle}>HÌNH ẢNH THẬT CỦA SẢN PHẨM</label>
+            <label style={labelStyle}>HÌNH ẢNH THẬT CỦA SẢN PHẨM (giữ Ctrl/Shift hoặc Command để chọn nhiều ảnh)</label>
           <input
             ref={prodFileInputRef}
             type="file"
@@ -286,7 +222,7 @@ export default function AdminPage() {
                 ✓ Chọn {productFiles.length} ảnh
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {productFiles.slice(0, 5).map((file, idx) => (
+                {productFiles.map((file, idx) => (
                   <div key={idx} style={{ fontSize: 12, color: "#555" }}>
                     {file.name}
                   </div>
