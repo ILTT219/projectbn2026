@@ -25,7 +25,6 @@ export async function POST(req: Request) {
         {
           name,
           category_id: Number(category_id),
-          price: 1,
         },
       ])
       .select()

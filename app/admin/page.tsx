@@ -131,9 +131,7 @@ export default function AdminPage() {
   return (
     <div style={{ padding: "40px 20px", maxWidth: 700, margin: "0 auto" }}>
       <h1 style={{ color: "#2f6f3e", marginBottom: 30 }}>Quản trị - Thêm sản phẩm</h1>
-      <Link href="https://ai.studio/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0" target="_blank" rel="noopener noreferrer" style={{ marginBottom: 24, display: "inline-block", color: "#2e7d32" }}>
-        Tạo ảnh đại diện
-      </Link>
+      
       <form onSubmit={handleSubmit} style={formStyle}>
         {/* Tên sản phẩm */}
         <div style={fieldStyle}>
@@ -187,7 +185,9 @@ export default function AdminPage() {
             style={textareaStyle}
           />
         </div>
-
+        <Link href="https://ai.studio/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0" target="_blank" rel="noopener noreferrer" style={{ marginBottom: 24, display: "inline-block", color: "#2e7d32" }}>
+          Tạo ảnh đại diện
+        </Link>
         {/* Ảnh đại diện */}
         <div style={fieldStyle}>
           <label style={labelStyle}>ẢNH ĐẠI DIỆN</label>

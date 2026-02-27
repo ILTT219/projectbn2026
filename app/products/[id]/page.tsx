@@ -6,28 +6,36 @@ type Params = {
 }
 
 export default async function ProductDetail({ params }: Params) {
+  const { id: idParam } = await params as { id: string }
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  const id = Number(params.id)
+  const id = Number(idParam)
+  console.log("[ProductDetail] params.id:", idParam, "-> id:", id)
+  
   if (Number.isNaN(id)) {
     return <div className="container">Không tìm thấy sản phẩm (id không hợp lệ)</div>
   }
 
   const { data: product, error: prodErr } = await supabase
     .from("products")
-    .select("id, name, description, detail, img, price, origin, contact_address")
+    .select("id, name, description, detail, img, origin, contact_address")
     .eq("id", id)
     .single()
 
+  console.log("[ProductDetail] product query:", { id, product, error: prodErr })
+
   if (prodErr || !product) {
-    console.error('product fetch error', prodErr)
+    console.error('[ProductDetail] product fetch error', prodErr)
     return (
       <div className="container">
         <div>Không tìm thấy sản phẩm</div>
-        {prodErr && <pre style={{ whiteSpace: 'pre-wrap', marginTop: 12 }}>{String(prodErr.message || prodErr)}</pre>}
+        <pre style={{ whiteSpace: 'pre-wrap', marginTop: 12, fontSize: 12, background: '#f5f5f5', padding: 12, borderRadius: 6 }}>
+          {prodErr?.message || 'No product data'}
+        </pre>
+        <p style={{ marginTop: 12, fontSize: 12, color: '#666' }}>Debug: ID = {id}</p>
       </div>
     )
   }
@@ -62,11 +70,6 @@ export default async function ProductDetail({ params }: Params) {
           {product.contact_address && (
             <p>
               <strong>Địa chỉ liên hệ:</strong> {product.contact_address}
-            </p>
-          )}
-          {product.price !== undefined && (
-            <p>
-              <strong>Giá:</strong> {product.price}
             </p>
           )}
         </div>
