@@ -107,8 +107,19 @@ export default function ProductsPage() {
           const cat = categories.find((c) => c.id === p.categoryId)
           return (
             <Link key={p.id} href={`/products/${p.id}`}>
-              <div className="card" style={{ cursor: "pointer", padding: 16 }}>
-                <h3 style={{ marginBottom: 6 }}>{p.name}</h3>
+              <div
+                className="card"
+                data-name={p.name}
+                style={{
+                  cursor: "pointer",
+                  padding: 16,
+                  border: "2px solid #2f6f3e", // ensure a visible frame
+                  borderRadius: 8,
+                }}
+              >
+                <h3 style={{ marginBottom: 6 }}>
+                  Danh sách sản phẩm: {p.name}
+                </h3>
                 <div style={{ fontSize: 13, color: "#555" }}>{cat?.name}</div>
               </div>
             </Link>
