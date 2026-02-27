@@ -10,11 +10,11 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
 
-    const { name, price, category} = body
+    const { name, category_id } = body
 
-    if (!name || !price) {
+    if (!name || !category_id) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: name and category_id" },
         { status: 400 }
       )
     }
@@ -24,8 +24,8 @@ export async function POST(req: Request) {
       .insert([
         {
           name,
-          price: Number(price),
-          category,
+          category_id: Number(category_id),
+          price: 1,
         },
       ])
       .select()

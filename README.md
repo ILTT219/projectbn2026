@@ -1,5 +1,16 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Admin authentication setup
+
+- Ensure your `admin` table has columns `id`, `email`, and `password`.
+- Store passwords hashed (bcrypt recommended). Use the helper script:
+  ```bash
+  node scripts/hash-password.js
+  ```
+- Add `ADMIN_JWT_SECRET` to your `.env.local` with a strong random string. This is used to sign login tokens.
+- When users visit `/admin`, they'll see a login form. Valid credentials issue a cookie and grant access.
+
+
 ## Getting Started
 
 First, run the development server:

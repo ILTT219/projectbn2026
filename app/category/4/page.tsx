@@ -56,7 +56,7 @@ export default function CategoryPage({ params }: { params: { "0": string } }) {
         .eq("category_id", categoryId)
 
       if (error) {
-        console.error("supabase fetch error", error)
+        // silently fail
       } else if (data) {
         setProducts(data)
       }

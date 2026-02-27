@@ -38,11 +38,16 @@ export default function ProductsPage() {
       const { data, error } = await supabase
         .from("products")
         .select("id, name, category_id")
+      
+      console.log("Supabase error:", error)
+      console.log("Supabase data:", data)
+      
       if (error) {
-        console.error("supabase fetch error", error)
+        console.error("Fetch failed:", error.message)
         return
       }
       if (data) {
+        console.log("Fetched products:", data)
         setProductList(
           data.map((r: any) => ({
             id: r.id,
