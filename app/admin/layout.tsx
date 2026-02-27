@@ -15,8 +15,16 @@ export default function AdminLayout({
       >
         <h2>Admin</h2>
         <ul style={{ marginTop: 20 }}>
-          <li>Dashboard</li>
-          <li>Sản phẩm</li>
+          <li>
+            <a href="/admin" style={{ color: 'white', textDecoration: 'none' }}>
+              Dashboard
+            </a>
+          </li>
+          <li>
+            <a href="/admin/products" style={{ color: 'white', textDecoration: 'none' }}>
+              Sản phẩm
+            </a>
+          </li>
         </ul>
         <a
           href="/api/admin/logout"

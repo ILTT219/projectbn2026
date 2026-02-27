@@ -3,28 +3,52 @@ import { createClient } from '@supabase/supabase-js'
 import { Buffer } from 'buffer'
 import jwt from 'jsonwebtoken'
 
+// simple helper used by every method to enforce admin cookie
+async function checkAuth(req: NextRequest) {
+  if (process.env.SKIP_ADMIN_AUTH === 'true') return true
+  const token = req.cookies.get('admin_token')?.value
+  const secret = process.env.ADMIN_JWT_SECRET
+  if (!token || !secret) return false
+  try {
+    jwt.verify(token, secret)
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
 // service role client bypasses RLS so the route can write to tables
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+export async function GET(req: NextRequest) {
+  // require admin auth for listing too
+  if (!(await checkAuth(req))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('products')
+      .select('*')
+      .order('id', { ascending: false })
+
+    if (error) {
+      console.error('error fetching products', error)
+      return NextResponse.json({ error: 'Unable to fetch products' }, { status: 500 })
+    }
+    return NextResponse.json({ data })
+  } catch (err: any) {
+    console.error('GET products error', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
-  // in development, skip auth if flag set
-  if (process.env.SKIP_ADMIN_AUTH === 'true') {
-    // continue without checking cookie
-  } else {
-    // verify admin token cookie (same check as middleware)
-    const token = req.cookies.get('admin_token')?.value
-    const secret = process.env.ADMIN_JWT_SECRET
-    if (!token || !secret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    try {
-      jwt.verify(token, secret)
-    } catch (e) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!(await checkAuth(req))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
