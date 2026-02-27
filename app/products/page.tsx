@@ -25,7 +25,7 @@ const images: Record<number, string> = {
 // sample product data (each product has categoryId 1-6)
 // products will be loaded from Supabase table `products`
 // each row should include id, name, category_id
-const products: Array<{id:number;name:string;categoryId:number}> = []
+const products: Array<{id:number;name:string;categoryId:number;img?: string}> = []
 
 export default function ProductsPage() {
   const [query, setQuery] = useState("")
@@ -37,7 +37,7 @@ export default function ProductsPage() {
     async function load() {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, category_id")
+        .select("id, name, category_id, img")
       
       console.log("Supabase error:", error)
       console.log("Supabase data:", data)
@@ -53,6 +53,7 @@ export default function ProductsPage() {
             id: r.id,
             name: r.name,
             categoryId: r.category_id,
+            img: r.img || undefined,
           }))
         )
       }
@@ -112,15 +113,15 @@ export default function ProductsPage() {
                 data-name={p.name}
                 style={{
                   cursor: "pointer",
-                  padding: 16,
-                  border: "2px solid #2f6f3e", // ensure a visible frame
+                  padding: 0,
+                  border: "2px solid #2f6f3e",
                   borderRadius: 8,
+                  backgroundImage: p.img ? `url(${p.img})` : "none",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  height: 200,
                 }}
               >
-                <h3 style={{ marginBottom: 6 }}>
-                  Danh sách sản phẩm: {p.name}
-                </h3>
-                <div style={{ fontSize: 13, color: "#555" }}>{cat?.name}</div>
               </div>
             </Link>
           )
