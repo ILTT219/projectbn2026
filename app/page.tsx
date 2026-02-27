@@ -23,10 +23,11 @@ export default function Home() {
   return (
     <main style={{ fontFamily: "sans-serif" }}>
       <section style={{ backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundPosition: "center center", backgroundRepeat: "no-repeat", height: "350px" }}>
-        <h1>Danh sách sản phẩm</h1>
+        
       </section>
       
       <div className="container" >
+        <h1>Danh mục sản phẩm</h1>
       <div className="grid">
         {category.map((product) => (
           <Link key={product.id} href={`/category/${product.id}`}>
