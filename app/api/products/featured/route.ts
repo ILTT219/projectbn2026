@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     }
 
     // get top viewed products in category, with their images
-    const { data: products, error } = await supabase
+    let { data: products, error } = await supabase
       .from('products')
       .select(`
         id,
@@ -45,6 +45,19 @@ export async function GET(req: NextRequest) {
       if (simpleErr) {
         console.error('supabase featured fallback error', simpleErr)
         return NextResponse.json({ error: 'Unable to fetch products' }, { status: 500 })
+      }
+      // fetch images separately for fallback products
+      if (simple && simple.length > 0) {
+        const productsWithImages = await Promise.all(
+          simple.map(async (p: any) => {
+            const { data: imgs } = await supabase
+              .from('images')
+              .select('image_url')
+              .eq('product_id', p.id)
+            return { ...p, images: imgs || [] }
+          })
+        )
+        return NextResponse.json({ data: productsWithImages })
       }
       return NextResponse.json({ data: simple || [] })
     }

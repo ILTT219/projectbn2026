@@ -65,15 +65,23 @@ export default function CategoryPage() {
   const image = categoryImages[categoryId] || ""
 
   useEffect(() => {
+    const supabase = require('@supabase/supabase-js').createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    )
+    
+    let productsSub: any = null
+    let allProductsSub: any = null
+
     async function load() {
       try {
-        // fetch featured (top viewed) products
-        const res = await fetch(`/api/products/featured?category_id=${categoryId}&limit=6`)
+        // fetch featured (top 3 viewed) products
+        const res = await fetch(`/api/products/featured?category_id=${categoryId}&limit=3`)
         const data = await res.json()
         setFeatured(data.data || [])
 
-        // also fetch all products for reference
-        const allRes = await fetch(`/api/products?category=${categoryId}`)
+        // also fetch all products with images for gallery
+        const allRes = await fetch(`/api/products?category=${categoryId}&include_images=true`)
         const allData = await allRes.json()
         setAllProducts(allData.data || [])
       } catch (err) {
@@ -82,7 +90,55 @@ export default function CategoryPage() {
         setLoading(false)
       }
     }
+    
     load()
+
+    // subscribe to realtime updates on products in this category
+    productsSub = supabase
+      .channel(`category-products-featured-${categoryId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'products', filter: `category_id=eq.${categoryId}` },
+        async (payload: any) => {
+          // when a product is updated (e.g. view_count), refresh featured list
+          try {
+            const res = await fetch(`/api/products/featured?category_id=${categoryId}&limit=3`)
+            const data = await res.json()
+            setFeatured(data.data || [])
+          } catch (err) {
+            console.error('realtime featured update error', err)
+          }
+        }
+      )
+      .subscribe()
+
+    // also subscribe to all products updates
+    allProductsSub = supabase
+      .channel(`category-all-products-${categoryId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'products', filter: `category_id=eq.${categoryId}` },
+        async (payload: any) => {
+          // update the specific product in allProducts list
+          setAllProducts((prev) =>
+            prev.map((p) =>
+              p.id === payload.new.id
+                ? { ...p, ...payload.new }
+                : p
+            )
+          )
+        }
+      )
+      .subscribe()
+
+    return () => {
+      if (productsSub) {
+        supabase.removeChannel(productsSub)
+      }
+      if (allProductsSub) {
+        supabase.removeChannel(allProductsSub)
+      }
+    }
   }, [categoryId])
 
   return (
@@ -240,8 +296,8 @@ export default function CategoryPage() {
           </div>
         </section>
 
-        {/* Product Gallery */}
-        {featured.length > 0 && (
+        {/* Product Gallery - Images from all category products */}
+        {allProducts.length > 0 && (
           <section style={{ marginBottom: 80 }}>
             <h2
               style={{
@@ -262,7 +318,7 @@ export default function CategoryPage() {
                 gap: 16,
               }}
             >
-              {featured
+              {allProducts
                 .filter((p) => p.images && p.images.length > 0)
                 .flatMap((p) =>
                   p.images.slice(0, 3).map((img, idx) => (

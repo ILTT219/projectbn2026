@@ -2,9 +2,8 @@ export default function ContactPage() {
   return (
     <div style={{ padding: 40 }}>
       <h1>Liên hệ</h1>
-      <p>📍 Địa chỉ: TP.HCM</p>
-      <p>📞 Hotline: 0900 000 000</p>
-      <p>📧 Email: contact@nongsan.vn</p>
+      <p>📞 Hotline: 0962828301</p>
+      <p>📧 Email: t219t3@gmail.com</p>
     </div>
   )
 }
