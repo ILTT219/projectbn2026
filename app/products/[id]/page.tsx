@@ -149,54 +149,119 @@ export default function ProductDetail() {
     )
   }
 
-  const hasImages = images && images.length > 0
-  const shouldShowAside = hasImages
-
   return (
     <div className="container">
-      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-        <div style={{ flex: 1, ...(shouldShowAside ? {} : { maxWidth: 600, margin: "0 auto" }) }}>
-          <h1>{product.name}</h1>
+      {/* Phần trên: Ảnh đại diện + Thông tin cơ bản */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 40,
+        marginBottom: 48,
+        borderBottom: "1px solid #ccc",
+        paddingBottom: 40,
+        alignItems: "start"
+      }}>
+        {/* Ảnh đại diện */}
+        <div>
           {product.img && (
             <img
               src={product.img}
               alt={product.name}
-              style={{ maxWidth: "100%", borderRadius: 8, marginBottom: 12 }}
+              style={{
+                width: "100%",
+                borderRadius: 12,
+                objectFit: "cover",
+                aspectRatio: "1 / 1"
+              }}
             />
-          )}
-          
-
-          <h3 className="section-title">Thông tin chi tiết</h3>
-          {product.description && <p>{product.description}</p>}
-          {product.origin && (
-            <p>
-              <strong>Xuất xứ:</strong> {product.origin}
-            </p>
-          )}
-          {product.contact_address && (
-            <p>
-              <strong>Địa chỉ liên hệ:</strong> {product.contact_address}
-            </p>
           )}
         </div>
 
-        {shouldShowAside && (
-          <aside style={{ width: 320 }}>
-            <h4>Hình ảnh</h4>
+        {/* Thông tin cơ bản */}
+        <div>
+          <h1 style={{ fontSize: 32, marginBottom: 24, fontWeight: 700 }}>{product.name}</h1>
+          
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            fontSize: 16
+          }}>
+            {product.origin && (
+              <div>
+                <p style={{ color: "#666", marginBottom: 6 }}>Xuất xứ</p>
+                <p style={{ fontWeight: 600 }}>{product.origin}</p>
+              </div>
+            )}
+            {product.contact_address && (
+              <div>
+                <p style={{ color: "#666", marginBottom: 6 }}>Nhà chế tạo</p>
+                <p style={{ fontWeight: 600 }}>{product.contact_address}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Phần giữa: Thông tin chi tiết */}
+      <div style={{ marginBottom: 48 }}>
+        <h3 style={{
+          fontSize: 24,
+          fontWeight: 700,
+          marginBottom: 20
+        }}>Thông tin chi tiết</h3>
+        {product.description && (
+          <p style={{
+            lineHeight: 1.8,
+            fontSize: 16,
+            color: "#333",
+            whiteSpace: "pre-wrap"
+          }}>
+            {product.description}
+          </p>
+        )}
+      </div>
+
+      {/* Phần dưới: Ảnh thêm */}
+      {images && images.length > 0 && (
+        <div style={{ marginBottom: 48 }}>
+          <h3 style={{
+            fontSize: 24,
+            fontWeight: 700,
+            marginBottom: 20
+          }}>Ảnh thêm</h3>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+            gap: 16
+          }}>
             {images.map((it: ProductImage, idx: number) => (
               <img
                 key={idx}
                 src={it.image_url}
                 alt={`product-${product.id}-img-${idx}`}
-                style={{ width: "100%", marginBottom: 8, borderRadius: 6 }}
+                style={{
+                  width: "100%",
+                  borderRadius: 8,
+                  objectFit: "cover",
+                  aspectRatio: "1 / 1"
+                }}
               />
             ))}
-          </aside>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
-      <div style={{ marginTop: 16 }}>
-        <Link href="/products">Quay lại danh sách</Link>
+      {/* Nút quay lại */}
+      <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid #ccc" }}>
+        <Link href="/products" style={{
+          color: "#2e7d32",
+          textDecoration: "none",
+          fontWeight: 600,
+          transition: "opacity 0.2s"
+        }}>
+          ← Quay lại danh sách
+        </Link>
       </div>
     </div>
   )
