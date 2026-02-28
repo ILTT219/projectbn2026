@@ -16,6 +16,7 @@ create table if not exists public.products (
   description text null,
   detail text null,
   contact_address text null,
+  view_count bigint default 0 not null,
   constraint products_pkey primary key (id)
 );
 

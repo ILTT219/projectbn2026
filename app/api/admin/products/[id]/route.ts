@@ -22,6 +22,14 @@ async function checkAuth(req: NextRequest) {
   }
 }
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb', // allow larger uploads when updating a product
+    },
+  },
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -117,7 +125,44 @@ export async function PUT(
       }
     }
 
-    // note: gallery images handling could be added here as needed
+    // handle additional gallery images on update as well
+    const images = formData.getAll('images') as File[]
+    if (images.length > 0) {
+      const rowsToInsert: { product_id: number; image_url: string; img_id: number }[] = []
+      const generateImgId = () => {
+        return Math.floor(Date.now() * 1000 + Math.random() * 1000)
+      }
+
+      for (const file of images) {
+        if (!file || !file.size) continue
+        const randomSuffix = Math.random().toString(36).substr(2, 9)
+        const fileName = `${id}-${Date.now()}-${randomSuffix}-${file.name}`
+        const arrayBuffer = await file.arrayBuffer()
+        const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
+          .from('product-images')
+          .upload(`products/${fileName}`, Buffer.from(arrayBuffer), {
+            contentType: file.type,
+          })
+
+        if (uploadErr) {
+          console.error('upload error for', file.name, uploadErr)
+          continue
+        }
+
+        if (uploadData) {
+          const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images/${uploadData.path}`
+          rowsToInsert.push({ product_id: idNum, image_url: url, img_id: generateImgId() })
+        }
+      }
+
+      if (rowsToInsert.length > 0) {
+        const { data: inserted, error: insertErr } = await supabaseAdmin.from('images').insert(rowsToInsert)
+        if (insertErr) {
+          console.error('images insert error on update', insertErr)
+          return NextResponse.json({ error: 'Unable to save product images', details: insertErr.message }, { status: 500 })
+        }
+      }
+    }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

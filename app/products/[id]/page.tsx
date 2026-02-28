@@ -1,49 +1,140 @@
-import { createClient } from "@supabase/supabase-js"
-import Link from "next/link"
+"use client"
 
-type Params = {
-  params: { id: string }
+import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
+import Link from "next/link"
+import { createClient } from "@supabase/supabase-js"
+
+interface Product {
+  id: number
+  name: string
+  description?: string
+  detail?: string
+  img?: string
+  origin?: string
+  contact_address?: string
 }
 
-export default async function ProductDetail({ params }: Params) {
-  const { id: idParam } = await params as { id: string }
+interface ProductImage {
+  image_url: string
+}
+
+export default function ProductDetail() {
+  const params = useParams()
+  const idParam = params.id as string
+  const [product, setProduct] = useState<Product | null>(null)
+  const [images, setImages] = useState<ProductImage[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // create client with no-cache wrapper so browser won't reuse stale responses
+  const fetchFn = (url: string, opts: any) => fetch(url, { ...opts, cache: 'no-store' })
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      // override global fetch to disable HTTP caching
+      global: { fetch: fetchFn },
+    }
   )
 
-  const id = Number(idParam)
-  console.log("[ProductDetail] params.id:", idParam, "-> id:", id)
-  
-  if (Number.isNaN(id)) {
-    return <div className="container">Không tìm thấy sản phẩm (id không hợp lệ)</div>
+  useEffect(() => {
+    let productSub: any = null
+    let imagesSub: any = null
+
+    async function load() {
+      try {
+        const id = Number(idParam)
+        if (Number.isNaN(id)) {
+          setError("ID không hợp lệ")
+          setLoading(false)
+          return
+        }
+
+        // fetch product
+        const { data: productData, error: prodErr } = await supabase
+          .from("products")
+          .select("id, name, description, detail, img, origin, contact_address")
+          .eq("id", id)
+          .single()
+
+        if (prodErr || !productData) {
+          setError("Không tìm thấy sản phẩm")
+          setLoading(false)
+          return
+        }
+
+        setProduct(productData)
+
+        // fetch images
+        const { data: imagesData } = await supabase
+          .from("images")
+          .select("image_url")
+          .eq("product_id", id)
+
+        setImages(imagesData || [])
+
+        // track view
+        try {
+          await fetch("/api/products/track-view", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ product_id: id }),
+          })
+        } catch (e) {
+          // silently fail
+        }
+
+        // subscribe to realtime updates on this product and its images
+        productSub = supabase
+          .channel(`product-updates-${id}`)
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'products', filter: `id=eq.${id}` },
+            (payload) => {
+              if (payload.new) setProduct(payload.new as Product)
+            }
+          )
+          .subscribe()
+
+        imagesSub = supabase
+          .channel(`product-images-${id}`)
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'images', filter: `product_id=eq.${id}` },
+            (payload) => {
+              if (payload.new) {
+                setImages((prev) => [...prev, payload.new as ProductImage])
+              }
+            }
+          )
+          .subscribe()
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+
+    return () => {
+      if (productSub) supabase.removeChannel(productSub)
+      if (imagesSub) supabase.removeChannel(imagesSub)
+    }
+  }, [idParam])
+
+  if (loading) {
+    return <div className="container">Đang tải...</div>
   }
 
-  const { data: product, error: prodErr } = await supabase
-    .from("products")
-    .select("id, name, description, detail, img, origin, contact_address")
-    .eq("id", id)
-    .single()
-
-  console.log("[ProductDetail] product query:", { id, product, error: prodErr })
-
-  if (prodErr || !product) {
-    console.error('[ProductDetail] product fetch error', prodErr)
+  if (error || !product) {
     return (
       <div className="container">
-        <div>Không tìm thấy sản phẩm</div>
-        <pre style={{ whiteSpace: 'pre-wrap', marginTop: 12, fontSize: 12, background: '#f5f5f5', padding: 12, borderRadius: 6 }}>
-          {prodErr?.message || 'No product data'}
-        </pre>
-        <p style={{ marginTop: 12, fontSize: 12, color: '#666' }}>Debug: ID = {id}</p>
+        <div>{error || "Không tìm thấy sản phẩm"}</div>
+        <div style={{ marginTop: 12 }}>
+          <Link href="/products">Quay lại danh sách</Link>
+        </div>
       </div>
     )
   }
-
-  const { data: imagesData } = await supabase
-    .from("images")
-    .select("image_url")
-    .eq("product_id", id)
 
   return (
     <div className="container">
@@ -76,12 +167,12 @@ export default async function ProductDetail({ params }: Params) {
 
         <aside style={{ width: 320 }}>
           <h4>Hình ảnh</h4>
-          {imagesData && imagesData.length > 0 ? (
-            imagesData.map((it: any, idx: number) => (
+          {images && images.length > 0 ? (
+            images.map((it: ProductImage, idx: number) => (
               <img
                 key={idx}
                 src={it.image_url}
-                alt={`product-${id}-img-${idx}`}
+                alt={`product-${product.id}-img-${idx}`}
                 style={{ width: "100%", marginBottom: 8, borderRadius: 6 }}
               />
             ))

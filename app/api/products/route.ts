@@ -1,10 +1,41 @@
-import { NextResponse } from "next/server"
+import { NextResponse, NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseKey)
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const category = searchParams.get('category')
+
+    let query = supabase.from('products').select('id, name, img, view_count')
+
+    if (category) {
+      query = query.eq('category_id', Number(category))
+    }
+
+    const { data, error } = await query.order('view_count', { ascending: false })
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ data })
+  } catch (err: any) {
+    console.error('GET products error:', err)
+    return NextResponse.json(
+      { error: err.message },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(req: Request) {
   try {
