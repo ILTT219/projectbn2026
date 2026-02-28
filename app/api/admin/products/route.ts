@@ -23,14 +23,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb', // allow larger uploads when creating products
-    },
-  },
-}
-
 export async function GET(req: NextRequest) {
   // require admin auth for listing too
   if (!(await checkAuth(req))) {

@@ -22,14 +22,6 @@ async function checkAuth(req: NextRequest) {
   }
 }
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb', // allow larger uploads when updating a product
-    },
-  },
-}
-
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
