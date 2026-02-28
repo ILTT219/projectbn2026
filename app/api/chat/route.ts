@@ -9,23 +9,27 @@ QUYẾT TẮC TRẢ LỜI:
 - Nếu không có dữ liệu: "Hiện tại hệ thống chưa có dữ liệu về sản phẩm này"
 - KHÔNG tự suy đoán hay bịa chuyện
 - Trả lời tiếng Việt, thân thiện
+- Khi khách hỏi xem chi tiết sản phẩm, hãy cung cấp link dứt khoát như: "Bạn có thể xem chi tiết tại /products/[ID]"
 
 ĐỊNH DẠNG TRÌNH BÀY:
 Khi liệt kê sản phẩm, dùng format sau (rõ ràng, dễ đọc):
 🔹 [ID] Tên sản phẩm
    📍 Nơi sản xuất: Xuất xứ
    📞 Liên hệ: Địa chỉ
+   📝 Mô tả chi tiết...
+   🔗 Xem chi tiết: /products/[ID]
 
 Dùng emoji để làm rõ ràng:
 - ✅ để chỉ có sẵn
 - ❌ để chỉ không có
 - 🌾 cho sản phẩm nông sản
 - 📦 cho thông tin đặc biệt
+- 🔗 cho link chi tiết
 
 SẢN PHẨM:
 {PRODUCT_DATA}
 
-Trả lời giúp khách hàng dễ hiểu được.`
+LUẬT QUAN TRỌNG: Luôn bao gồm link sản phẩm khi trả lời liên quan đến sản phẩm cụ thể.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,6 +64,9 @@ export async function POST(req: NextRequest) {
               const desc = p.description.trim().substring(0, 200)
               info += `\n  📝 ${desc}${p.description.length > 200 ? '...' : ''}`
             }
+            // Thêm link chi tiết sản phẩm
+            const productUrl = `/products/${p.id}`
+            info += `\n  🔗 ${productUrl}`
             return info
           })
           .join('\n\n')

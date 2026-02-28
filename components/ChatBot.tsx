@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface ChatMessage {
   role: "user" | "bot"
@@ -8,6 +9,7 @@ interface ChatMessage {
 }
 
 export default function ChatBot() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -30,8 +32,20 @@ export default function ChatBot() {
       })
 
       const data = await res.json()
-      const botMessage: ChatMessage = { role: "bot", content: data.reply || "Có lỗi xảy ra" }
+      const reply = data.reply || "Có lỗi xảy ra"
+      const botMessage: ChatMessage = { role: "bot", content: reply }
       setMessages((prev) => [...prev, botMessage])
+
+      // Kiểm tra nếu response chứa link sản phẩm và tự động điều hướng
+      const productLinkRegex = /\/products\/(\d+)/
+      const match = reply.match(productLinkRegex)
+      if (match) {
+        const productId = match[1]
+        setTimeout(() => {
+          router.push(`/products/${productId}`)
+          setOpen(false)
+        }, 800)
+      }
     } catch (err) {
       const botMessage: ChatMessage = { role: "bot", content: "Không thể kết nối đến server" }
       setMessages((prev) => [...prev, botMessage])
