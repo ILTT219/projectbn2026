@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // System prompt tối ưu cho chatbot tư vấn sản phẩm
-const SYSTEM_PROMPT = `Bạn là tư vấn viên khách hàng chuyên nghiệp cho website nông sản.
+const SYSTEM_PROMPT = `Bạn là tư vấn viên khách hàng chuyên nghiệp cho website nông sản OCOP Bắc Ninh.
 
 QUYẾT TẮC TRẢ LỜI:
 - CHỈ trả lời dựa trên thông tin sản phẩm được cung cấp
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
       const { data: products, error } = await supabase
         .from('products')
-        .select('id, name, origin, contact_address')
+        .select('id, name, description, origin, contact_address')
         .limit(30)
 
       if (!error && products && products.length > 0) {
@@ -56,6 +56,10 @@ export async function POST(req: NextRequest) {
           .map((p: any) => {
             let info = `[${p.id}] ${p.name}\n  📍 ${p.origin || 'N/A'}`
             if (p.contact_address) info += `\n  📞 ${p.contact_address}`
+            if (p.description) {
+              const desc = p.description.trim().substring(0, 200)
+              info += `\n  📝 ${desc}${p.description.length > 200 ? '...' : ''}`
+            }
             return info
           })
           .join('\n\n')

@@ -215,7 +215,8 @@ export default function ProductDetail() {
             lineHeight: 1.8,
             fontSize: 16,
             color: "#333",
-            whiteSpace: "pre-wrap"
+            whiteSpace: "pre-wrap",
+            textAlign: "justify"
           }}>
             {product.description}
           </p>
