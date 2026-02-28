@@ -25,6 +25,11 @@ export default function AdminLayout({
               Sản phẩm
             </a>
           </li>
+          <li>
+            <a href="/admin/stats" style={{ color: 'white', textDecoration: 'none' }}>
+              Thống kê truy cập
+            </a>
+          </li>
         </ul>
         <a
           href="/api/admin/logout"

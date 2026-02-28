@@ -11,6 +11,7 @@ export interface Product {
   description?: string
   contact_address?: string
   img?: string
+  view_count?: number
 }
 
 export const categories = [
