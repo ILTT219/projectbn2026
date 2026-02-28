@@ -15,6 +15,7 @@ export default function RootLayout({
           <Link href="/" style={{ color: "rgb(71, 255, 95)", fontWeight: 600, textDecoration: "none" }}>Trang chủ</Link>
           <Link href="/products" style={{ color: "rgb(71, 255, 95)", fontWeight: 600, textDecoration: "none" }}>Sản phẩm</Link>
           <Link href="/contact" style={{ color: "rgb(71, 255, 95)", fontWeight: 600, textDecoration: "none" }}>Liên hệ</Link>
+          <Link href="/admin" style={{ color: "rgb(71, 255, 95)", fontWeight: 600, textDecoration: "none" }}>Admin</Link>
           {/* admin link intentionally removed from public navigation */}
         </nav>
         {children}
