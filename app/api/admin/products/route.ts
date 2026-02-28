@@ -82,7 +82,6 @@ export async function POST(req: NextRequest) {
           category_id,
           origin: origin || null,
           description: description || null,
-          detail: description || null,
           contact_address: contact_address || null,
         },
       ])

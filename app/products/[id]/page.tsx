@@ -9,7 +9,6 @@ interface Product {
   id: number
   name: string
   description?: string
-  detail?: string
   img?: string
   origin?: string
   contact_address?: string
@@ -28,7 +27,12 @@ export default function ProductDetail() {
   const [error, setError] = useState<string | null>(null)
 
   // create client with no-cache wrapper so browser won't reuse stale responses
-  const fetchFn = (url: string, opts: any) => fetch(url, { ...opts, cache: 'no-store' })
+  // the wrapper must match the Fetch API signature (input can be URL or RequestInfo)
+  const fetchFn: typeof fetch = (input, init) => {
+    const opts: RequestInit = { ...(init || {}), cache: 'no-store' }
+    return fetch(input, opts)
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -54,7 +58,7 @@ export default function ProductDetail() {
         // fetch product
         const { data: productData, error: prodErr } = await supabase
           .from("products")
-          .select("id, name, description, detail, img, origin, contact_address")
+          .select("id, name, description, img, origin, contact_address")
           .eq("id", id)
           .single()
 
@@ -108,6 +112,15 @@ export default function ProductDetail() {
               }
             }
           )
+          .on(
+            'postgres_changes',
+            { event: 'DELETE', schema: 'public', table: 'images', filter: `product_id=eq.${id}` },
+            (payload) => {
+              if (payload.old) {
+                setImages((prev) => prev.filter((img) => img.image_url !== payload.old.image_url))
+              }
+            }
+          )
           .subscribe()
       } finally {
         setLoading(false)
@@ -151,7 +164,6 @@ export default function ProductDetail() {
           {product.description && <p>{product.description}</p>}
 
           <h3 className="section-title">Thông tin chi tiết</h3>
-          {product.detail && <p>{product.detail}</p>}
 
           {product.origin && (
             <p>

@@ -227,12 +227,12 @@ export default function ProductForm({
       <div style={fieldStyle}>
         <label style={labelStyle}>MÔ TẢ VỀ ĐẶC ĐIỂM SẢN PHẨM</label>
         <Link
-          href="https://ai.studio/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0"
+          href="https://ai.studio/apps/b359236e-1a52-4bff-b51f-5dad3e8ab2f0"
           target="_blank"
           rel="noopener noreferrer"
           style={{ marginBottom: 24, display: 'inline-block', color: '#2e7d32' }}
         >
-          Tạo mô tả đặc điểm
+          Tạo mô tả đặc điểm bằng AI
         </Link>
         <textarea
           placeholder="Mô tả chi tiết về đặc điểm, tính chất, lợi ích của sản phẩm..."
@@ -251,7 +251,7 @@ export default function ProductForm({
           rel="noopener noreferrer"
           style={{ marginBottom: 24, display: 'inline-block', color: '#2e7d32' }}
         >
-          Tạo ảnh đại diện
+          Tạo ảnh đại diện bằng AI
         </Link>
         <input
           ref={repFileInputRef}

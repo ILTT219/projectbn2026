@@ -95,7 +95,6 @@ export async function PUT(
         category_id,
         origin: origin || null,
         description: description || null,
-        detail: description || null,
         contact_address: contact_address || null,
       })
       .eq('id', id)
@@ -128,6 +127,9 @@ export async function PUT(
     // handle additional gallery images on update as well
     const images = formData.getAll('images') as File[]
     if (images.length > 0) {
+      // delete existing gallery rows so the product detail shows only the new set
+      await supabaseAdmin.from('images').delete().eq('product_id', id)
+
       const rowsToInsert: { product_id: number; image_url: string; img_id: number }[] = []
       const generateImgId = () => {
         return Math.floor(Date.now() * 1000 + Math.random() * 1000)
