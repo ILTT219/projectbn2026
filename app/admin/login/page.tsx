@@ -12,6 +12,7 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('handleSubmit invoked', { email, password })
     setError('')
     setLoading(true)
 
@@ -20,25 +21,23 @@ export default function AdminLoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
-        credentials: 'same-origin',
+        credentials: 'include', // ensure cookie from response is stored
       })
 
-      // consume JSON body for debugging and error display
       const data = await res.json().catch(() => ({}))
       console.log('Admin login response', { status: res.status, ok: res.ok, body: data })
 
-      setLoading(false)
       if (res.ok) {
-        // cookie should be set by the server (path=/); do a full navigation
-        // so the browser includes the cookie on the request (avoid RSC prefetch)
+        // force full page navigation so browser applies cookie from response
         window.location.href = '/admin'
       } else {
         setError(data.error || 'Login failed')
       }
     } catch (err: any) {
-      setLoading(false)
       console.error('Login fetch error', err)
       setError('Network error')
+    } finally {
+      setLoading(false)
     }
   }
 

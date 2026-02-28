@@ -69,15 +69,59 @@ export default function ChatBot() {
               ))}
             </div>
 
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Nhập câu hỏi..."
-            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    sendMessage()
+                  }
+                }}
+                placeholder="Nhập câu hỏi..."
+                style={{
+                  padding: 8,
+                  borderRadius: 6,
+                  border: '1px solid #ccc',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  marginBottom: 6,
+                }}
+              />
 
-            <button onClick={sendMessage}>Gửi</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={sendMessage}
+                  style={{
+                    flex: 1,
+                    background: '#16a34a',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Gửi
+                </button>
 
-            <button onClick={() => setOpen(false)}>Đóng</button>
+                <button
+                  onClick={() => setOpen(false)}
+                  style={{
+                    flex: 1,
+                    background: '#f3f3f3',
+                    color: '#333',
+                    border: 'none',
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -8,8 +8,9 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
   node scripts/hash-password.js
   ```
 - Add `ADMIN_JWT_SECRET` to your `.env.local` with a strong random string. This is used to sign login tokens.
+- The public navigation bar no longer shows an admin link; access is only possible by manually visiting `/admin`.
 - When users visit `/admin`, they'll see a login form. Valid credentials issue a cookie and grant access.
-
+- Make sure `SKIP_ADMIN_AUTH` in `.env.local` is set to `false` (or removed) in production so middleware protects the admin routes.
 
 ## Getting Started
 

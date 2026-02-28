@@ -149,10 +149,13 @@ export default function ProductDetail() {
     )
   }
 
+  const hasImages = images && images.length > 0
+  const shouldShowAside = hasImages
+
   return (
     <div className="container">
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, ...(shouldShowAside ? {} : { maxWidth: 600, margin: "0 auto" }) }}>
           <h1>{product.name}</h1>
           {product.img && (
             <img
@@ -161,10 +164,10 @@ export default function ProductDetail() {
               style={{ maxWidth: "100%", borderRadius: 8, marginBottom: 12 }}
             />
           )}
-          {product.description && <p>{product.description}</p>}
+          
 
           <h3 className="section-title">Thông tin chi tiết</h3>
-
+          {product.description && <p>{product.description}</p>}
           {product.origin && (
             <p>
               <strong>Xuất xứ:</strong> {product.origin}
@@ -177,21 +180,19 @@ export default function ProductDetail() {
           )}
         </div>
 
-        <aside style={{ width: 320 }}>
-          <h4>Hình ảnh</h4>
-          {images && images.length > 0 ? (
-            images.map((it: ProductImage, idx: number) => (
+        {shouldShowAside && (
+          <aside style={{ width: 320 }}>
+            <h4>Hình ảnh</h4>
+            {images.map((it: ProductImage, idx: number) => (
               <img
                 key={idx}
                 src={it.image_url}
                 alt={`product-${product.id}-img-${idx}`}
                 style={{ width: "100%", marginBottom: 8, borderRadius: 6 }}
               />
-            ))
-          ) : (
-            <div>Không có hình ảnh.</div>
-          )}
-        </aside>
+            ))}
+          </aside>
+        )}
       </div>
 
       <div style={{ marginTop: 16 }}>

@@ -32,7 +32,7 @@ const categoryData: Record<number, { name: string; intro: string; info: string }
   },
   6: {
     name: "Đồ uống",
-    intro: "Các loại đồ uống tuyệt vời từ OCOP Bắc Ninh. Từ trà, cà phê đến các loại nước ép tự nhiên.",
+    intro: "Các loại đồ uống tuyệt vời từ OCOP Bắc Ninh. Từ trà, các loại nước ép tự nhiên.",
     info: "Đồ uống không chỉ là mục đích thỏa khát mà còn là trải nghiệm hương vị. OCOP Bắc Ninh mang đến các loại đồ uống tự nhiên, thơm ngon, tốt cho sức khỏe.",
   },
 }
