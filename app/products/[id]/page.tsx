@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabase"
 
 interface Product {
   id: number
@@ -19,9 +19,6 @@ interface ProductImage {
   image_url: string
 }
 
-/**
- * ProductDetail Component (Hand-drawn / Scrapbook style)
- */
 export default function ProductDetail() {
   const params = useParams()
   const idParam = params.id as string
@@ -29,17 +26,6 @@ export default function ProductDetail() {
   const [images, setImages] = useState<ProductImage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const fetchFn: typeof fetch = (input, init) => {
-    const opts: RequestInit = { ...(init || {}), cache: 'no-store' }
-    return fetch(input, opts)
-  }
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { fetch: fetchFn } }
-  )
 
   useEffect(() => {
     let productSub: any = null
@@ -49,7 +35,7 @@ export default function ProductDetail() {
       try {
         const id = Number(idParam)
         if (Number.isNaN(id)) {
-          setError("Số giấy không hợp lệ")
+          setError("Sản phẩm không hợp lệ")
           setLoading(false)
           return
         }
@@ -61,7 +47,7 @@ export default function ProductDetail() {
           .single()
 
         if (prodErr || !productData) {
-          setError("Tờ nháp này không có thật")
+          setError("Không tìm thấy sản phẩm này trong hệ thống")
           setLoading(false)
           return
         }
@@ -113,117 +99,143 @@ export default function ProductDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center font-heading text-3xl">
-        Đang vẽ...
+      <div className="min-h-[50vh] flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+           <svg className="w-8 h-8 text-brand-green animate-spin" fill="none" viewBox="0 0 24 24">
+             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+           </svg>
+           <span className="text-slate-500 font-medium">Đang tải thông tin...</span>
+        </div>
       </div>
     )
   }
 
   if (error || !product) {
     return (
-      <div className="container-custom py-20 text-center">
-        <div className="text-3xl font-heading text-slate-800 mb-6">{error || "Tờ giấy rỗng."}</div>
-        <Link href="/products" className="sketch-btn">
-          Lật sang trang khác
+      <div className="container-custom py-20 text-center min-h-[50vh] flex flex-col items-center justify-center">
+        <div className="w-16 h-16 bg-red-50 text-brand-red rounded-full flex items-center justify-center mb-6">
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div className="text-2xl font-heading font-medium text-slate-800 mb-6">{error || "Sản phẩm không khả dụng"}</div>
+        <Link href="/products" className="ocop-btn inline-flex items-center gap-2">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          Quay lại danh sách
         </Link>
       </div>
     )
   }
 
   return (
-    <div className="container-custom py-12 max-w-5xl">
-       <div className="mb-8">
-        <Link href={`/category/${product.category_id || 1}`} className="inline-flex items-center gap-2 font-heading text-2xl text-slate-600 hover:text-slate-900 group">
-           <svg className="w-6 h-6 transform group-hover:-translate-x-2 transition-transform" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-           gấp lại
-        </Link>
-      </div>
+    <div className="bg-slate-50 min-h-screen pt-8 pb-16">
+      <div className="container-custom max-w-6xl">
+        {/* Breadcrumb */}
+        <nav className="mb-8 flex text-sm text-slate-500 font-medium">
+          <Link href="/" className="hover:text-brand-green transition-colors">Trang chủ</Link>
+          <span className="mx-2">/</span>
+          <Link href={`/category/${product.category_id || 1}`} className="hover:text-brand-green transition-colors">Danh mục</Link>
+          <span className="mx-2">/</span>
+          <span className="text-slate-800 truncate max-w-[200px] sm:max-w-xs">{product.name}</span>
+        </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
-        {/* Lõi Ảnh Lớn */}
-        <div className="lg:col-span-2">
-           <div className="sketch-card bg-white p-3 rotate-1 transform mx-auto max-w-md">
-             <div className="sketch-image-wrapper aspect-square border-4">
-                {product.img ? (
-                  <img src={product.img} alt={product.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center font-heading text-2xl text-slate-400 bg-slate-100">
-                    Chưa vẽ ảnh
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-8 p-6 lg:p-10">
+             
+             {/* Left Gallery */}
+             <div className="flex flex-col gap-4">
+                <div className="aspect-square rounded-xl bg-slate-50 border border-slate-100 overflow-hidden relative">
+                   {product.img ? (
+                     <img src={product.img} alt={product.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                   ) : (
+                     <div className="w-full h-full flex items-center justify-center text-slate-400">
+                       <svg className="w-16 h-16 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                     </div>
+                   )}
+                   <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-xs font-bold text-brand-green tracking-wide shadow-sm uppercase border border-brand-green/20">
+                     Sản phẩm OCOP
+                   </div>
+                </div>
+                
+                {images && images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-3">
+                    {images.map((it, idx) => (
+                      <a key={idx} href={it.image_url} target="_blank" rel="noreferrer" className="aspect-square rounded-lg border border-slate-200 overflow-hidden block hover:border-brand-green transition-colors">
+                        <img src={it.image_url} alt={`${product.name} ${idx}`} className="w-full h-full object-cover" />
+                      </a>
+                    ))}
                   </div>
                 )}
              </div>
-             <p className="font-heading text-center text-xl mt-3 opacity-70">
-               {product.name} - Bản gốc
-             </p>
-           </div>
-        </div>
 
-        {/* Cuốn số tay cho Nội dung */}
-        <div className="lg:col-span-3">
-           <div className="sketch-card bg-yellow-50/90 min-h-full p-8 md:p-10 -rotate-1 relative" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #94a3b8 31px, #94a3b8 32px)' }}>
-              
-              {/* Lỗ đóng gáy xoắn sổ tay (Giả lập) */}
-              <div className="absolute top-0 bottom-0 left-3 w-8 flex flex-col justify-around py-4 opacity-70">
-                {[...Array(12)].map((_, i) => (
-                  <div key={i} className="w-4 h-4 rounded-full bg-[#f6f4f0] border-2 border-slate-800 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.5)]"></div>
-                ))}
-              </div>
+             {/* Right Content */}
+             <div className="flex flex-col py-6 lg:py-0">
+                <div className="mb-4">
+                   <h1 className="font-heading text-3xl md:text-4xl font-bold text-slate-900 leading-snug mb-2">
+                     {product.name}
+                   </h1>
+                   <div className="flex items-center gap-4 text-sm mt-3">
+                      <span className="flex items-center gap-1.5 text-brand-gold-dark font-medium px-2.5 py-1 bg-brand-gold-light/20 rounded-md">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        Phân hạng đạt chuẩn
+                      </span>
+                      <span className="text-slate-500 font-medium">Lượt quan tâm cao</span>
+                   </div>
+                </div>
 
-              <div className="pl-8">
-                 <h1 className="font-heading text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-[1.1]">
-                   {product.name}
-                 </h1>
-                 
-                 <div className="space-y-4 font-serif text-2xl text-slate-800 mt-8">
+                <hr className="border-slate-100 my-6" />
+
+                <div className="space-y-4 font-sans mb-8 flex-1">
                    {product.origin && (
-                     <div className="flex flex-col">
-                       <span className="font-heading text-lg text-slate-500 line-through decoration-slate-400">Từ xứ sở:</span>
-                       <span className="font-bold -mt-2">{product.origin}</span>
+                     <div className="flex items-start gap-3">
+                       <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
+                         <span className="text-xl">📍</span>
+                       </div>
+                       <div>
+                         <p className="text-sm font-semibold text-slate-500">Xuất xứ sản phẩm</p>
+                         <p className="text-base text-slate-900 font-medium">{product.origin}</p>
+                       </div>
                      </div>
                    )}
                    
                    {product.contact_address && (
-                     <div className="flex flex-col">
-                       <span className="font-heading text-lg text-slate-500 line-through decoration-slate-400">Bàn tay nhào nặn:</span>
-                       <span className="font-bold leading-tight -mt-2">{product.contact_address}</span>
+                     <div className="flex items-start gap-3">
+                       <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
+                         <span className="text-xl">🏢</span>
+                       </div>
+                       <div>
+                         <p className="text-sm font-semibold text-slate-500">Chủ thể / Hợp tác xã</p>
+                         <p className="text-base text-slate-900 font-medium">{product.contact_address}</p>
+                       </div>
                      </div>
                    )}
-                 </div>
+                </div>
 
-                 <div className="mt-8 font-serif text-2xl text-slate-800 leading-[32px] text-justify">
-                    {product.description ? (
-                      <p className="whitespace-pre-wrap">{product.description}</p>
-                    ) : (
-                      <p className="italic text-slate-500">Chưa có dòng tâm sự nào được viết ra...</p>
-                    )}
-                 </div>
-              </div>
+                <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 mb-8">
+                   <h3 className="font-heading font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                     <svg className="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                     Thông tin mô tả
+                   </h3>
+                   {product.description ? (
+                     <p className="text-slate-600 leading-relaxed text-sm whitespace-pre-wrap">
+                       {product.description}
+                     </p>
+                   ) : (
+                     <p className="text-slate-400 text-sm italic">Sản phẩm này hiện đang cập nhật thêm thông tin miêu tả chi tiết.</p>
+                   )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button className="ocop-btn flex-1 py-3.5 text-base shadow-lg shadow-brand-green/20">
+                    Liên hệ đặt hàng
+                  </button>
+                  <button className="ocop-btn-alt py-3.5 px-6 font-medium">
+                    Lưu danh sách
+                  </button>
+                </div>
+             </div>
            </div>
         </div>
       </div>
-
-       {/* Ảnh đính kèm */}
-       {images && images.length > 0 && (
-         <div className="mt-20">
-           <div className="flex items-center gap-4 mb-8 border-b-4 border-slate-800 border-dashed pb-2 w-max">
-             <h3 className="font-heading text-4xl font-bold text-slate-900">Bản Vẽ Mô Phỏng Khác</h3>
-           </div>
-           
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-             {images.map((it: ProductImage, idx: number) => (
-                <div key={idx} className={`sketch-card bg-white p-2 ${idx % 2 === 0 ? '-rotate-2' : 'rotate-3'} hover:rotate-0 transition-all`}>
-                  <a href={it.image_url} target="_blank" rel="noreferrer" className="block sketch-image-wrapper aspect-square">
-                    <img
-                      src={it.image_url}
-                      alt={`Ảnh đính kèm ${idx + 1}`}
-                      className="w-full h-full object-cover grayscale-[30%] hover:grayscale-0 transition-all duration-300"
-                    />
-                  </a>
-                </div>
-             ))}
-           </div>
-         </div>
-       )}
     </div>
   )
 }

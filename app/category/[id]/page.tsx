@@ -57,9 +57,8 @@ interface Product {
   images: Array<{ image_url: string }>
 }
 
-/**
- * CategoryPage Component (Hand-drawn theme)
- */
+import { supabase } from "@/lib/supabase"
+
 export default function CategoryPage() {
   const params = useParams()
   const categoryId = parseInt(params.id as string, 10)
@@ -71,11 +70,6 @@ export default function CategoryPage() {
   const image = categoryImages[categoryId] || ""
 
   useEffect(() => {
-    const supabase = require('@supabase/supabase-js').createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    )
-    
     let productsSub: any = null
     let allProductsSub: any = null
 
@@ -126,68 +120,68 @@ export default function CategoryPage() {
   }, [categoryId])
 
   return (
-    <>
-      {/* Hero Section (Polaroid Style) */}
-      <section className="container-custom py-12">
-        <div className="sketch-card bg-white p-4 pb-12 relative max-w-4xl mx-auto transform -rotate-1">
-          {/* Tape */}
-          <div className="absolute -top-3 right-10 w-20 h-6 bg-slate-300/60 rotate-6 border border-slate-400" style={{ borderRadius: '255px 15px 225px 15px/15px 225px 15px 255px' }}></div>
-          
-          <div className="sketch-image-wrapper h-[300px] md:h-[400px]">
-            <img src={image} className="w-full h-full object-cover" alt={cat.name} />
-          </div>
-          
-          <div className="absolute bottom-4 left-6 right-6 flex items-baseline gap-4">
-             <h1 className="font-heading text-5xl md:text-6xl text-slate-900 font-bold underline decoration-brand-green">{cat.name}</h1>
-          </div>
+    <div className="bg-slate-50 min-h-screen">
+      {/* Category Hero Block */}
+      <section className="relative h-[300px] md:h-[400px] bg-slate-900 border-b border-brand-green border-opacity-30">
+        <div className="absolute inset-0 opacity-40">
+          <img src={image} className="w-full h-full object-cover" alt={cat.name} />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
         </div>
-        <div className="max-w-3xl mx-auto mt-8 font-serif text-2xl text-slate-700 leading-relaxed text-center">
+        <div className="relative container-custom h-full flex flex-col justify-end pb-12 z-10">
+          <Link href="/" className="inline-flex items-center gap-2 text-brand-gold-light hover:text-white transition-colors text-sm font-medium mb-4">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Kênh Trang chủ
+          </Link>
+          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl text-white font-extrabold tracking-tight mb-4">
+            {cat.name}
+          </h1>
+          <p className="max-w-2xl font-sans text-lg text-slate-200 leading-relaxed">
             {cat.intro}
+          </p>
         </div>
       </section>
 
-      <div className="container-custom py-16 space-y-24">
+      <div className="container-custom py-16 space-y-20">
         
         {/* Featured Products */}
         <section>
-          <div className="flex flex-col items-center mb-12 relative">
-            <h2 className="font-heading text-5xl font-bold text-slate-800 z-10">Sản Phẩm Đinh</h2>
-            <svg className="absolute -bottom-2 w-64 h-4 text-brand-gold" viewBox="0 0 100 20" preserveAspectRatio="none">
-              <path d="M0,10 Q25,0 50,15 T100,5" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
-            </svg>
+          <div className="flex flex-col mb-8 border-b border-slate-200 pb-4">
+            <h2 className="font-heading text-2xl font-bold text-slate-900">Sản Phẩm Đinh Tiêu Biểu</h2>
+            <p className="text-slate-500 text-sm mt-1">Những mặt hàng đạt phản hồi tốt nhất từ khách hàng</p>
           </div>
 
           {loading ? (
-            <div className="flex gap-2 justify-center p-12 text-2xl font-serif">
-              Đang pha mực...
+            <div className="flex gap-2 justify-center p-12 text-slate-500 text-sm">
+              <span className="animate-pulse">Đang tải danh mục...</span>
             </div>
           ) : featured.length === 0 ? (
-            <div className="text-center font-serif text-2xl text-slate-500 py-10 sketch-card mx-auto max-w-md">
-              Chưa có tranh vẽ nào.
+            <div className="text-center text-slate-500 py-12 bg-white rounded-2xl border border-slate-100">
+              Chưa có sản phẩm nào thuộc gian hàng này.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {featured.map((p, i) => (
-                <div key={p.id} className={`sketch-card flex flex-col bg-white p-3 group cursor-pointer ${i % 2 === 0 ? 'rotate-1' : '-rotate-1'} hover:rotate-0`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featured.map((p) => (
+                <div key={p.id} className="ocop-card group flex flex-col cursor-pointer">
                   {p.img && (
-                    <div className="sketch-image-wrapper aspect-square mb-4 relative">
+                    <div className="aspect-[4/3] relative overflow-hidden bg-slate-100 border-b border-slate-100">
                       <img
                         src={p.img}
                         alt={p.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute top-2 right-2 bg-yellow-200 text-slate-900 px-3 py-1 font-heading text-xl shadow-[2px_2px_0px_#333] border-2 border-slate-900 rotate-3">
-                        👁 {p.view_count || 0}
+                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-brand-green px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        {p.view_count || 0}
                       </div>
                     </div>
                   )}
 
-                  <div className="p-3 flex flex-col flex-1">
-                    <h3 className="font-heading font-bold text-3xl text-slate-900 mb-4">{p.name}</h3>
-                    <div className="mt-auto">
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="font-heading font-bold text-lg text-slate-900 mb-4 line-clamp-2">{p.name}</h3>
+                    <div className="mt-auto pt-4">
                       <Link href={`/products/${p.id}`} className="block w-full">
-                        <button className="w-full sketch-btn text-2xl py-1">
-                          Lật mở
+                        <button className="w-full ocop-btn">
+                          Xem chi tiết
                         </button>
                       </Link>
                     </div>
@@ -198,64 +192,35 @@ export default function CategoryPage() {
           )}
         </section>
 
-        {/* General Info Scrapbook */}
-        <section className="max-w-4xl mx-auto">
-          <div className="sketch-card bg-brand-gold-light/20 p-8 md:p-12 transform rotate-1">
-             <div className="flex items-center gap-4 mb-4">
-              <span className="text-4xl text-slate-800">📌</span>
-              <h2 className="font-heading text-4xl font-bold text-brand-green">Chút tâm tình</h2>
-            </div>
-            <div className="font-serif text-2xl text-slate-800 leading-relaxed indent-8">
-              {cat.info}
+        {/* Info Block */}
+        <section className="max-w-5xl">
+          <div className="bg-brand-green text-white p-8 md:p-12 rounded-3xl shadow-lg relative overflow-hidden">
+             <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+             <div className="relative z-10">
+              <h2 className="font-heading text-2xl font-bold mb-4 flex items-center gap-2">
+                <span className="text-brand-gold-light">★</span> Ý nghĩa ngành hàng
+              </h2>
+              <div className="text-slate-100/90 leading-relaxed text-base">
+                {cat.info}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Product Gallery Section */}
-        {allProducts.length > 0 && (
-          <section>
-            <div className="flex flex-col items-center mb-12">
-              <h2 className="font-heading text-5xl font-bold text-slate-800">Góc Ảnh</h2>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-              {allProducts
-                .filter((p) => p.images && p.images.length > 0)
-                .flatMap((p) =>
-                  p.images.slice(0, 3).map((img, idx) => (
-                    <div
-                      key={`${p.id}-${idx}`}
-                      className={`sketch-card p-2 bg-white relative aspect-[3/4] group cursor-pointer ${idx % 3 === 0 ? '-rotate-3' : idx % 2 === 0 ? 'rotate-2' : 'rotate-1'}`}
-                    >
-                      <img
-                        src={img.image_url}
-                        alt={`${p.name} - ảnh ${idx + 1}`}
-                        className="w-full h-[85%] object-cover grayscale-[20%] sepia-[10%] group-hover:grayscale-0 transition-all duration-300"
-                      />
-                      <div className="h-[15%] flex items-center justify-center font-heading text-xl text-slate-600 truncate px-2">
-                        {p.name.substring(0, 15)}...
-                      </div>
-                    </div>
-                  ))
-                )}
-            </div>
-          </section>
-        )}
-
         {/* All Products List Section */}
         <section>
-          <div className="flex items-center gap-4 mb-10 border-b-4 border-slate-800 border-dashed pb-2 w-max">
-            <h2 className="font-heading text-4xl font-bold text-slate-800">Danh Mục Chi Tiết</h2>
+          <div className="flex flex-col mb-8 border-b border-slate-200 pb-4">
+            <h2 className="font-heading text-2xl font-bold text-slate-900">Danh Mục Toàn Phần</h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {allProducts.map((p) => (
                <Link key={p.id} href={`/products/${p.id}`} className="group block outline-none">
-                 <div className="sketch-card bg-orange-50/50 p-4 transition-all">
-                   <h3 className="font-heading text-2xl font-bold text-slate-800 group-hover:text-brand-green mb-2">{p.name}</h3>
-                   <div className="font-serif text-xl text-slate-600 flex items-center gap-2">
-                     <svg className="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                     {p.view_count || 0} lượt ngắm
+                 <div className="ocop-card p-5 transition-all hover:border-brand-green/30 hover:shadow-brand-green/5">
+                   <h3 className="font-heading text-base font-bold text-slate-800 group-hover:text-brand-green mb-2 line-clamp-1">{p.name}</h3>
+                   <div className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
+                     <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                     {p.view_count || 0} lượt tiếp cận
                    </div>
                  </div>
                </Link>
@@ -264,6 +229,6 @@ export default function CategoryPage() {
         </section>
 
       </div>
-    </>
+    </div>
   )
 }

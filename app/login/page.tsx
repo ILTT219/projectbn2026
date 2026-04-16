@@ -27,7 +27,6 @@ export default function LoginPage() {
       const data = await res.json().catch(() => ({}))
 
       if (res.ok) {
-        // Tuỳ vào bộ đồng phục (role), ta đẩy người dùng vào đúng cổng
         if (data.role === 'admin') {
           window.location.href = '/admin'
         } else if (data.role === 'seller') {
@@ -36,74 +35,82 @@ export default function LoginPage() {
           window.location.href = '/'
         }
       } else {
-        setError(data.error || 'Chià khoá gãy rồi òi')
+        setError(data.error || 'Thông tin đăng nhập không chính xác')
       }
     } catch (err: any) {
-      setError('Lỗi đường rò...')
+      setError('Đã xảy ra lỗi kết nối. Vui lòng thử lại.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="container-custom py-24 min-h-[70vh] flex flex-col items-center justify-center">
-      <div className="w-full max-w-sm mb-4">
-        <Link href="/" className="inline-flex items-center gap-2 font-heading text-xl text-slate-500 hover:text-slate-800 transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Chạy ra ngoài
+    <div className="bg-slate-50 min-h-[80vh] flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md mb-6">
+        <Link href="/" className="inline-flex items-center gap-2 font-sans text-sm font-medium text-slate-500 hover:text-brand-green transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          Quay lại trang chủ
         </Link>
       </div>
-      <div className="sketch-card bg-amber-50/90 w-full max-w-sm p-8 md:p-10 transform rotate-1 shadow-[8px_8px_0px_#1e1e1e]" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #cbd5e1 31px, #cbd5e1 32px)', paddingTop: '45px' }}>
-         <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 transform scale-150">
-            📌
+      
+      <div className="ocop-card w-full max-w-md p-8 md:p-10 border-t-4 border-t-brand-green">
+         <div className="text-center mb-8">
+           <div className="w-12 h-12 bg-brand-green/10 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-green text-2xl">
+             🔐
+           </div>
+           <h1 className="font-heading text-3xl font-bold text-slate-900 tracking-tight">
+             Đăng nhập hệ thống
+           </h1>
+           <p className="mt-2 text-sm text-slate-500 font-sans">
+             Dành cho Ban điều hành & Nhà cung cấp OCOP
+           </p>
          </div>
-         <h1 className="font-heading text-5xl font-bold text-brand-green text-center mb-8 bg-white/70 py-1 border-2 border-slate-900 border-dashed" style={{ borderRadius: '15px 255px 15px 225px / 255px 15px 225px 15px' }}>
-            Ổ Khoá
-         </h1>
-         <form onSubmit={handleSubmit} className="flex flex-col gap-6 font-serif text-xl">
-            <div className="flex flex-col gap-2">
-               <label className="font-heading text-2xl font-bold text-slate-900">Danh tính (Email)</label>
+
+         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1.5">
+               <label className="font-heading text-sm font-semibold text-slate-700">Email đăng nhập</label>
                <input
                  type="email"
                  value={email}
                  onChange={(e) => setEmail(e.target.value)}
                  required
-                 className="sketch-input py-2 text-xl"
-                 placeholder="Bút danh..."
+                 className="ocop-input"
+                 placeholder="admin@ocop.vn..."
                />
             </div>
 
-            <div className="flex flex-col gap-2">
-               <label className="font-heading text-2xl font-bold text-slate-900">Mật thư (Mật khẩu)</label>
+            <div className="flex flex-col gap-1.5">
+               <label className="font-heading text-sm font-semibold text-slate-700">Mật khẩu</label>
                <input
                  type="password"
                  value={password}
                  onChange={(e) => setPassword(e.target.value)}
                  required
-                 className="sketch-input py-2 text-xl"
-                 placeholder="Che dòng mực..."
+                 className="ocop-input"
+                 placeholder="Nhập mật khẩu của bạn"
                />
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 font-bold p-3 border-2 border-red-500 text-center transform -rotate-2" style={{ borderRadius: '255px 15px 225px 15px/15px 225px 15px 255px' }}>
-                {error}
+              <div className="bg-red-50 text-brand-red text-sm font-medium p-3 rounded-lg border border-red-100 flex items-start gap-2">
+                <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <span>{error}</span>
               </div>
             )}
 
             <button
                type="submit"
                disabled={loading}
-               className="sketch-btn w-full mt-4 py-3 bg-brand-green text-white text-2xl"
+               className="ocop-btn w-full mt-2 py-3 text-base"
             >
-               {loading ? 'Đang tra chìa...' : '🗝 Tra Chìa & Vào'}
+               {loading ? 'Đang xử lý...' : 'Đăng nhập vào kênh'}
             </button>
          </form>
          
-         <div className="mt-6 text-center text-slate-500 text-lg font-serif italic border-t-2 border-slate-300 border-dashed pt-4">
-           Nhập đúng mã thẻ để hệ thống chỉ đường cho bạn vào đúng phòng Lãnh đạo hoặc Người bán nha!
-           <br/><br/>
-           Chưa có thẻ? <Link href="/register" className="text-brand-green hover:text-green-800 font-bold underline decoration-wavy">Khắc thẻ mới ngay luôn</Link>
+         <div className="mt-8 text-center text-sm text-slate-500 font-sans border-t border-slate-100 pt-6">
+           Bạn muốn đăng ký trở thành nhà cung cấp OCOP?
+           <br/>
+           <Link href="/register" className="text-brand-green hover:text-brand-green-dark font-semibold transition-colors mt-1 inline-block">Đăng ký đối tác mới</Link>
          </div>
       </div>
     </div>

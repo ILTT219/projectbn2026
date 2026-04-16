@@ -34,101 +34,111 @@ export default function RegisterPage() {
           window.location.href = '/'
         }
       } else {
-        setError(data.error || 'Mực bị lem ròi!')
+        setError(data.error || 'Qúa trình đăng ký thất bại')
       }
     } catch (err: any) {
-      setError('Lỗi đường rò...')
+      setError('Đã xảy ra lỗi kết nối. Vui lòng thử lại.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="container-custom py-24 min-h-[70vh] flex flex-col items-center justify-center">
-      <div className="w-full max-w-sm mb-4">
-        <Link href="/" className="inline-flex items-center gap-2 font-heading text-xl text-slate-500 hover:text-slate-800 transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Phay lui về
+    <div className="bg-slate-50 min-h-[80vh] flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md mb-6">
+        <Link href="/" className="inline-flex items-center gap-2 font-sans text-sm font-medium text-slate-500 hover:text-brand-green transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          Quay lại trang chủ
         </Link>
       </div>
-      <div className="sketch-card bg-amber-50/90 w-full max-w-sm p-8 md:p-10 transform -rotate-1 shadow-[8px_8px_0px_#1e1e1e]" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #cbd5e1 31px, #cbd5e1 32px)', paddingTop: '45px' }}>
-         <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 transform scale-150">
-            📌
+      
+      <div className="ocop-card w-full max-w-md p-8 md:p-10 border-t-4 border-t-brand-gold-dark">
+         <div className="text-center mb-8">
+           <div className="w-12 h-12 bg-brand-gold-light/20 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-gold-dark text-2xl">
+             📝
+           </div>
+           <h1 className="font-heading text-3xl font-bold text-slate-900 tracking-tight">
+             Đăng ký đối tác
+           </h1>
+           <p className="mt-2 text-sm text-slate-500 font-sans">
+             Ghi danh tham gia vào hệ sinh thái OCOP
+           </p>
          </div>
-         <h1 className="font-heading text-5xl font-bold text-brand-gold-dark text-center mb-8 bg-white/70 py-1 border-2 border-slate-900 border-dashed" style={{ borderRadius: '15px 255px 15px 225px / 255px 15px 225px 15px' }}>
-            Hộ Khẩu mới
-         </h1>
-         <form onSubmit={handleSubmit} className="flex flex-col gap-6 font-serif text-xl">
-            <div className="flex flex-col gap-2">
-               <label className="font-heading text-2xl font-bold text-slate-900">Bút danh mới (Email)</label>
+
+         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1.5">
+               <label className="font-heading text-sm font-semibold text-slate-700">Email đăng ký</label>
                <input
                  type="email"
                  value={email}
                  onChange={(e) => setEmail(e.target.value)}
                  required
-                 className="sketch-input py-2 text-xl"
-                 placeholder="Khai tên..."
+                 className="ocop-input"
+                 placeholder="lienhe@doanhnghiep.vn..."
                />
             </div>
 
-            <div className="flex flex-col gap-2">
-               <label className="font-heading text-2xl font-bold text-slate-900">Đặt Mật thư (Mật khẩu)</label>
+            <div className="flex flex-col gap-1.5">
+               <label className="font-heading text-sm font-semibold text-slate-700">Mật khẩu</label>
                <input
                  type="password"
                  value={password}
                  onChange={(e) => setPassword(e.target.value)}
                  required
-                 className="sketch-input py-2 text-xl"
-                 placeholder="Che dòng mực..."
                  minLength={6}
+                 className="ocop-input"
+                 placeholder="Tối thiểu 6 ký tự"
                />
             </div>
 
-            <div className="flex flex-col gap-2">
-               <label className="font-heading text-2xl font-bold text-slate-900">Bạn là ai?</label>
-               <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer font-sans">
+            <div className="flex flex-col gap-2 mt-2">
+               <label className="font-heading text-sm font-semibold text-slate-700">Vai trò của bạn trong hệ thống</label>
+               <div className="grid grid-cols-2 gap-3">
+                  <label className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-colors ${role === 'user' ? 'border-brand-green bg-brand-green/5 text-brand-green' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                      <input 
                         type="radio" 
                         name="role" 
                         value="user" 
                         checked={role === 'user'} 
                         onChange={(e) => setRole(e.target.value)}
-                        className="accent-brand-gold-dark scale-150 cursor-pointer" 
+                        className="accent-brand-green w-4 h-4" 
                      />
-                     Khách chơi
+                     <span className="font-medium text-sm">Khách hàng</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer font-sans">
+                  <label className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-colors ${role === 'seller' ? 'border-brand-green bg-brand-green/5 text-brand-green' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                      <input 
                         type="radio" 
                         name="role" 
                         value="seller" 
                         checked={role === 'seller'} 
                         onChange={(e) => setRole(e.target.value)}
-                        className="accent-brand-gold-dark scale-150 cursor-pointer" 
+                        className="accent-brand-green w-4 h-4" 
                      />
-                     Mở xưởng
+                     <span className="font-medium text-sm">Nhà cung cấp</span>
                   </label>
                </div>
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 font-bold p-3 border-2 border-red-500 text-center transform -rotate-1" style={{ borderRadius: '255px 15px 225px 15px/15px 225px 15px 255px' }}>
-                {error}
+              <div className="bg-red-50 text-brand-red text-sm font-medium p-3 rounded-lg border border-red-100 flex items-start gap-2 mt-2">
+                <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <span>{error}</span>
               </div>
             )}
 
             <button
                type="submit"
                disabled={loading}
-               className="sketch-btn w-full mt-4 py-3 bg-brand-gold-dark hover:bg-brand-gold text-white text-2xl"
+               className="ocop-btn w-full mt-4 py-3 text-base !bg-brand-gold-dark hover:!bg-brand-gold text-white"
             >
-               {loading ? 'Đang viết sổ...' : '📝 Nhận Hộ Khẩu'}
+               {loading ? 'Đang khởi tạo...' : 'Đăng ký tài khoản'}
             </button>
          </form>
 
-         <div className="mt-6 text-center text-slate-500 text-lg font-serif italic border-t-2 border-slate-300 border-dashed pt-4">
-           Đã có hộ khẩu trong làng? <Link href="/login" className="text-brand-gold-dark hover:text-brand-gold font-bold underline decoration-wavy">Vào Cổng Cũ</Link>
+         <div className="mt-8 text-center text-sm text-slate-500 font-sans border-t border-slate-100 pt-6">
+           Bạn đã có tài khoản trên hệ thống?
+           <br/>
+           <Link href="/login" className="text-brand-gold-dark hover:text-brand-gold font-semibold transition-colors mt-1 inline-block">Đăng nhập tại đây</Link>
          </div>
       </div>
     </div>

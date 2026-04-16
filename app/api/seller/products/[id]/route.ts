@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin } from '@/lib/supabase'
 import jwt from 'jsonwebtoken'
 import { Buffer } from 'buffer'
 
@@ -18,16 +18,13 @@ async function checkSellerAuth(req: NextRequest) {
   }
 }
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabaseAdmin = getSupabaseAdmin()
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const sellerId = await checkSellerAuth(req)
   if (!sellerId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const id = parseInt(params.id)
+  const id = parseInt((await params).id)
   if (!id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   // Validate ownership
@@ -41,11 +38,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   return NextResponse.json({ success: true })
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const sellerId = await checkSellerAuth(req)
   if (!sellerId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const id = parseInt(params.id)
+  const id = parseInt((await params).id)
   if (!id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   // Validate ownership

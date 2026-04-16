@@ -4,53 +4,44 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <aside
-        style={{
-          width: 220,
-          background: '#1e293b',
-          color: 'white',
-          padding: 20,
-        }}
-      >
-        <h2>Admin</h2>
-        <ul style={{ marginTop: 20 }}>
-          <li>
-            <a href="/admin" style={{ color: 'white', textDecoration: 'none' }}>
-              Dashboard
-            </a>
-          </li>
-          <li>
-            <a href="/admin/products" style={{ color: 'white', textDecoration: 'none' }}>
-              Sản phẩm
-            </a>
-          </li>
-          <li>
-            <a href="/admin/stats" style={{ color: 'white', textDecoration: 'none' }}>
-              Thống kê truy cập
-            </a>
-          </li>
-        </ul>
-        <a
-          href="/api/admin/logout"
-          style={{
-            display: 'inline-block',
-            marginTop: 20,
-            padding: '8px 12px',
-            border: 'none',
-            borderRadius: 4,
-            background: '#e53935',
-            color: 'white',
-            textDecoration: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          Đăng xuất
-        </a>
+    <div className="flex min-h-screen bg-slate-50 font-sans">
+      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20">
+        <div className="h-16 flex items-center px-6 border-b border-slate-800">
+          <span className="w-8 h-8 rounded bg-brand-green flex items-center justify-center text-white font-heading font-bold mr-3 shadow-md">O</span>
+          <h2 className="font-heading font-bold text-lg text-white tracking-wide">Quản trị OCOP</h2>
+        </div>
+        
+        <nav className="flex-1 py-6 px-4 space-y-2">
+          <a href="/admin" className="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors">
+            Khái quát (Dashboard)
+          </a>
+          <a href="/admin/products" className="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors flex items-center justify-between">
+            <span>Sản phẩm</span>
+          </a>
+          <a href="/admin/stats" className="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors">
+            Thống kê truy cập
+          </a>
+        </nav>
+        
+        <div className="p-4 border-t border-slate-800">
+          <a
+            href="/api/auth/logout"
+            className="flex items-center justify-center w-full px-4 py-2.5 bg-slate-800/50 hover:bg-brand-red/90 text-slate-300 hover:text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            Đăng xuất
+          </a>
+        </div>
       </aside>
 
-      <main style={{ flex: 1, padding: 40 }}>
-        {children}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center px-8 shadow-sm shrink-0">
+          <h1 className="font-heading font-semibold text-slate-800">Hệ thống Điều hành Tổng</h1>
+        </header>
+        <div className="flex-1 overflow-auto p-8 relative">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </div>
       </main>
     </div>
   )
