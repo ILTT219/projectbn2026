@@ -14,7 +14,7 @@ async function checkAdminAuth(req: NextRequest) {
   try {
     const decoded: any = jwt.verify(token, secret)
     if (decoded.role === 'admin') {
-      return decoded.user_id
+      return { id: decoded.user_id, email: decoded.email }
     }
     return null
   } catch (e) {
@@ -23,18 +23,25 @@ async function checkAdminAuth(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const adminId = await checkAdminAuth(req)
-  if (!adminId) {
+  const adminDoc = await checkAdminAuth(req)
+  if (!adminDoc) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const isOwner = adminDoc.email === 't219t3' || adminDoc.email?.startsWith('t219t3@');
+
   try {
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('users')
       .select('id, email, role, created_at, tax_id, business_registration, ocop_certificate')
       .eq('is_approved', false)
-      .neq('role', 'admin') // Lỡ có admin rác thì không liệt kê ở đây
       .order('created_at', { ascending: false })
+
+    if (!isOwner) {
+      query = query.neq('role', 'admin') // Chỉ có owner mới thấy admin rác
+    }
+
+    const { data, error } = await query
 
     if (error) {
       return NextResponse.json({ error: 'Không thể lấy danh sách người dùng' }, { status: 500 })
@@ -46,15 +53,22 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const adminId = await checkAdminAuth(req)
-  if (!adminId) {
+  const adminDoc = await checkAdminAuth(req)
+  if (!adminDoc) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const isOwner = adminDoc.email === 't219t3' || adminDoc.email?.startsWith('t219t3@');
 
   try {
     const { targetUserId } = await req.json()
     if (!targetUserId) {
        return NextResponse.json({ error: 'Thiếu ID người dùng' }, { status: 400 })
+    }
+
+    const { data: userToApprove } = await supabaseAdmin.from('users').select('role').eq('id', targetUserId).single()
+    if (userToApprove?.role === 'admin' && !isOwner) {
+       return NextResponse.json({ error: 'Chỉ Owner mới có quyền duyệt Quản trị viên' }, { status: 403 })
     }
 
     const { data, error } = await supabaseAdmin
@@ -75,15 +89,22 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const adminId = await checkAdminAuth(req)
-  if (!adminId) {
+  const adminDoc = await checkAdminAuth(req)
+  if (!adminDoc) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const isOwner = adminDoc.email === 't219t3' || adminDoc.email?.startsWith('t219t3@');
 
   try {
     const { targetUserId } = await req.json()
     if (!targetUserId) {
        return NextResponse.json({ error: 'Thiếu ID người dùng' }, { status: 400 })
+    }
+
+    const { data: userToDelete } = await supabaseAdmin.from('users').select('role').eq('id', targetUserId).single()
+    if (userToDelete?.role === 'admin' && !isOwner) {
+       return NextResponse.json({ error: 'Chỉ Owner mới có quyền từ chối Quản trị viên' }, { status: 403 })
     }
 
     const { error } = await supabaseAdmin

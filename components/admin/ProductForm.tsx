@@ -60,11 +60,16 @@ export default function ProductForm({
   const [showAiContentForm, setShowAiContentForm] = useState(false)
   const [aiSubject, setAiSubject] = useState("")
   const [aiHighlights, setAiHighlights] = useState("")
+  const [aiCertification, setAiCertification] = useState("")
+  const [aiLocalStory, setAiLocalStory] = useState("")
   const [aiLoading, setAiLoading] = useState(false)
 
   // AI Image Form State
   const [showAiImageForm, setShowAiImageForm] = useState(false)
   const [aiImageRequirements, setAiImageRequirements] = useState("")
+  const [aiLogoFile, setAiLogoFile] = useState<File | null>(null)
+  const [aiAspectRatio, setAiAspectRatio] = useState("1:1")
+  const [aiRealImages, setAiRealImages] = useState<File[]>([])
   const [aiImageLoading, setAiImageLoading] = useState(false)
 
   const repFileInputRef = useRef<HTMLInputElement>(null)
@@ -156,16 +161,22 @@ export default function ProductForm({
       const selectedCategory = categories.find(c => c.id.toString() === categoryId)?.name || ""
       const res = await fetch('/api/admin/generate-content', { // Admin and Seller both hit Admin generator due to no DB change needed for AI
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productName: name,
           subject: aiSubject,
           location: origin || "Bắc Ninh",
           productGroup: selectedCategory,
-          highlights: aiHighlights
+          highlights: aiHighlights,
+          certification: aiCertification,
+          localStory: aiLocalStory
         })
       })
       const data = await res.json()
-      if (data.description) {
+      if (data.description && data.seoContent) {
+        setDescription(`${data.description}\n\n=========================\n\nGỢI Ý SEO:\n${data.seoContent}`)
+        setShowAiContentForm(false)
+      } else if (data.description) {
         setDescription(data.description)
         setShowAiContentForm(false)
       } else {
@@ -178,6 +189,15 @@ export default function ProductForm({
     }
   }
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   async function handleGenerateAiImage() {
     if (!name.trim()) {
       alert("Viết cái tên SP vô trước để AI nó còn biết vẽ cái gì nhen.")
@@ -185,13 +205,27 @@ export default function ProductForm({
     }
     setAiImageLoading(true)
     try {
+      let logoBase64 = null;
+      if (aiLogoFile) {
+        logoBase64 = await fileToBase64(aiLogoFile);
+      }
+      
+      const realImagesBase64 = [];
+      for (const file of aiRealImages.slice(0, 2)) {
+        realImagesBase64.push(await fileToBase64(file));
+      }
+
       const res = await fetch('/api/admin/generate-image', { // Likewise AI is perfectly fine sharing memory route
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productName: name,
           location: origin || "Bắc Ninh",
           highlights: description || "",
-          requirements: aiImageRequirements
+          requirements: aiImageRequirements,
+          logoBase64,
+          realImagesBase64,
+          aspectRatio: aiAspectRatio
         })
       })
       const data = await res.json()
@@ -201,6 +235,8 @@ export default function ProductForm({
         const blob = await resObj.blob()
         const file = new File([blob], `ai-avatar-\${Date.now()}.png`, { type: blob.type })
         setRepresentativeFile(file)
+        
+        // Reset local AI inputs implicitly by hiding form or keeping them is fine
       } else {
         alert("Có lỗi từ phòng tranh AI: " + (data.error || "Quên cấu hình Gemini API Key chăng?"))
       }
@@ -212,180 +248,239 @@ export default function ProductForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full font-serif text-xl border-4 border-slate-900 border-dashed p-6 rounded-3xl bg-transparent">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full p-6 md:p-8 rounded-3xl bg-white shadow-xl shadow-slate-200/50 border border-slate-100">
       
-      {/* Tên sản phẩm */}
-      <div className="flex flex-col gap-2 relative">
-        <label className="font-heading text-2xl text-slate-800 font-bold">* Gọi nó là gì?</label>
-        <input
-          type="text"
-          placeholder="Nhập tên..."
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="sketch-input"
-          required
-        />
-        {/* Wavy underline doodle */}
-        <svg className="absolute -bottom-4 right-0 w-24 h-4 text-slate-400 opacity-50" viewBox="0 0 100 20" preserveAspectRatio="none">
-           <path d="M0,10 Q25,20 50,10 T100,10" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-        </svg>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Tên sản phẩm */}
+        <div>
+          <label className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-2 block">* Tên sản phẩm</label>
+          <input
+            type="text"
+            placeholder="Ví dụ: Trà hoa vàng Quế Võ"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none text-slate-800"
+            required
+          />
+        </div>
+
+        {/* Danh mục */}
+        <div>
+          <label className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-2 block">* Danh mục</label>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none text-slate-800 cursor-pointer"
+            required
+          >
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Danh mục */}
-      <div className="flex flex-col gap-2">
-        <label className="font-heading text-2xl text-slate-800 font-bold">* Trưng bày ở kệ nào?</label>
-        <select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className="sketch-input cursor-pointer"
-          required
-        >
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Xuất xứ */}
+        <div>
+          <label className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-2 block">Khu vực / Xuất xứ</label>
+          <input
+            type="text"
+            placeholder="Ví dụ: Phù Lãng, Quế Võ"
+            value={origin}
+            onChange={(e) => setOrigin(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none text-slate-800"
+          />
+        </div>
+        
+        {/* Địa chỉ liên hệ */}
+        <div>
+          <label className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-2 block">Thông tin liên hệ</label>
+          <input
+            type="text"
+            placeholder="Địa chỉ, hotline..."
+            value={contactAddress}
+            onChange={(e) => setContactAddress(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none text-slate-800"
+          />
+        </div>
       </div>
 
-      {/* Xuất xứ */}
-      <div className="flex flex-col gap-2">
-        <label className="font-heading text-2xl text-slate-800 font-bold">Quê quán (Xuất xứ)</label>
-        <input
-          type="text"
-          placeholder="Ví dụ: Làng gốm Phù Lãng..."
-          value={origin}
-          onChange={(e) => setOrigin(e.target.value)}
-          className="sketch-input"
-        />
-      </div>
+      <hr className="border-slate-100" />
 
       {/* Mô tả đặc điểm */}
       <div className="flex flex-col gap-2">
-        <label className="font-heading text-2xl text-slate-800 font-bold">Đôi dòng tâm sự (Mô tả)</label>
-        
-        <button
-          type="button"
-          onClick={() => setShowAiContentForm(!showAiContentForm)}
-          className="font-heading text-xl text-brand-green border-2 border-brand-green px-4 py-1 self-start transform transition-transform hover:-translate-y-1 bg-green-50 shadow-[2px_2px_0px_#1E3A8A]"
-          style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
-        >
-          ✨ Nhờ AI bịa... à nhầm, viết hộ
-        </button>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block">Mô tả sản phẩm</label>
+          <button
+            type="button"
+            onClick={() => setShowAiContentForm(!showAiContentForm)}
+            className="text-brand-green font-semibold hover:bg-brand-green/10 bg-slate-50 border border-slate-200 px-4 py-2 rounded-full transition-colors text-sm flex items-center gap-2"
+          >
+             ✨ Trợ lý Nội dung AI
+          </button>
+        </div>
         
         {showAiContentForm && (
-          <div className="p-4 bg-brand-green/10 border-2 border-brand-green mt-2 mb-4 relative" style={{ borderRadius: '15px 255px 15px 225px / 255px 15px 225px 15px' }}>
-            {/* Draw a pin */}
-            <div className="absolute -top-3 left-10 w-4 h-4 rounded-full bg-red-500 border-2 border-slate-900 shadow-md"></div>
+          <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl mb-4 space-y-5">
+            <h4 className="text-slate-800 font-bold mb-2">Cung cấp thông tin để AI viết mô tả</h4>
             
-            <p className="mb-4 text-slate-700 italic border-b-2 border-slate-400 border-dashed pb-2">
-              Chỉ điểm cho AI, để nó múa phím giùm nè!
-            </p>
-            <div className="flex flex-col gap-2 mb-3">
-              <label className="font-bold text-slate-700">Cha đẻ (Tên HTX/DN)</label>
-              <input type="text" className="sketch-input py-2 text-lg" value={aiSubject} onChange={e => setAiSubject(e.target.value)} placeholder="Ví dụ: HTX..." />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Chủ thể OCOP (Tên HTX/DN)</label>
+                <input type="text" className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" value={aiSubject} onChange={e => setAiSubject(e.target.value)} placeholder="Ví dụ: HTX Nông nghiệp sạch..." />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Chứng nhận OCOP</label>
+                <select className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none cursor-pointer" value={aiCertification} onChange={e => setAiCertification(e.target.value)}>
+                  <option value="">Chưa rõ / Chưa có</option>
+                  <option value="3 sao">OCOP 3 sao</option>
+                  <option value="4 sao">OCOP 4 sao</option>
+                  <option value="5 sao">OCOP 5 sao</option>
+                </select>
+              </div>
             </div>
-            <div className="flex flex-col gap-2 mb-4">
-              <label className="font-bold text-slate-700">* Khoe gì nhất?</label>
-              <textarea className="sketch-input py-2 text-lg min-h-[80px]" value={aiHighlights} onChange={e => setAiHighlights(e.target.value)} placeholder="Ví dụ: Hữu cơ sạch 100%, thủ công mĩ nghệ..." />
+            
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Giai thoại / Văn hóa địa phương</label>
+              <textarea className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none min-h-[60px] resize-y" value={aiLocalStory} onChange={e => setAiLocalStory(e.target.value)} placeholder="Gắn với truyền thuyết hoặc lịch sử địa phương..." />
             </div>
-            <button 
-              type="button" 
-              onClick={handleGenerateAiContent}
-              disabled={aiLoading}
-              className="sketch-btn bg-brand-gold text-slate-900 border-slate-900 text-lg py-1 px-4"
-            >
-              {aiLoading ? 'Rọt rẹt rọt rẹt... Đang chém.' : 'Ra lệnh!'}
-            </button>
+            
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">* Điểm nổi bật</label>
+              <textarea className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none min-h-[80px] resize-y" value={aiHighlights} onChange={e => setAiHighlights(e.target.value)} placeholder="Quy trình, chất lượng, thành phần..." />
+            </div>
+            
+            <div className="flex justify-end pt-2">
+              <button 
+                type="button" 
+                onClick={handleGenerateAiContent}
+                disabled={aiLoading}
+                className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold py-2.5 px-6 rounded-xl transition-colors flex items-center gap-2 disabled:bg-slate-300"
+              >
+                {aiLoading ? 'Đang phân tích...' : 'Bắt đầu tạo nội dung'}
+              </button>
+            </div>
           </div>
         )}
 
         <textarea
-          placeholder="Cứ viết tràn ra cũng được..."
+          placeholder="Mô tả chi tiết sản phẩm..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="sketch-input min-h-[120px]"
+          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none text-slate-800 min-h-[160px] resize-y"
         />
       </div>
+
+      <hr className="border-slate-100" />
 
       {/* Ảnh đại diện */}
       <div className="flex flex-col gap-2">
-        <label className="font-heading text-2xl text-slate-800 font-bold">Chân dung (Ảnh đại diện)</label>
-        
-        <button
-          type="button"
-          onClick={() => setShowAiImageForm(!showAiImageForm)}
-          className="font-heading text-xl text-blue-800 border-2 border-blue-800 px-4 py-1 self-start transform transition-transform hover:-translate-y-1 bg-blue-50 shadow-[2px_2px_0px_#1E3A8A]"
-          style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
-        >
-          🎨 Giao AI vẽ luôn chân dung
-        </button>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block">Hình ảnh đại diện</label>
+          <button
+            type="button"
+            onClick={() => setShowAiImageForm(!showAiImageForm)}
+            className="text-blue-600 font-semibold hover:bg-blue-50 bg-slate-50 border border-slate-200 px-4 py-2 rounded-full transition-colors text-sm flex items-center gap-2"
+          >
+            🎨 Tạo Ảnh = AI
+          </button>
+        </div>
         
         {showAiImageForm && (
-          <div className="p-4 bg-blue-50 border-2 border-blue-800 mt-2 mb-4 relative" style={{ borderRadius: '15px 255px 15px 225px / 255px 15px 225px 15px' }}>
-            {/* Draw a pin */}
-            <div className="absolute -top-3 left-10 w-4 h-4 rounded-full bg-blue-500 border-2 border-slate-900 shadow-md"></div>
+          <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl mb-4 space-y-5">
+            <h4 className="text-slate-800 font-bold mb-2">Thông số cho Poster Quảng Cáo</h4>
             
-            <p className="mb-4 text-slate-700 italic border-b-2 border-slate-400 border-dashed pb-2">
-              Gemini sẽ đóng vai hoạ sĩ vẽ tranh gốc OCOP.
-            </p>
-            <div className="flex flex-col gap-2 mb-4">
-              <label className="font-bold text-slate-700">Yêu cầu đặc biệt (Thêm thắt)</label>
-              <input type="text" className="sketch-input py-2 text-lg" value={aiImageRequirements} onChange={e => setAiImageRequirements(e.target.value)} placeholder="Tranh sơn dầu, hay phông nền lụa đỏ..." />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Logo thương hiệu</label>
+                <input type="file" accept="image/*" onChange={e => setAiLogoFile(e.target.files?.[0] || null)} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Ảnh thật SP (Tối đa 2)</label>
+                <input type="file" accept="image/*" multiple onChange={e => setAiRealImages(Array.from(e.target.files || []))} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+              </div>
             </div>
             
-            <button 
-              type="button" 
-              onClick={handleGenerateAiImage}
-              disabled={aiImageLoading}
-              className="sketch-btn bg-blue-600 text-white border-slate-900 text-lg py-1 px-4"
-            >
-              {aiImageLoading ? 'Họa sĩ đang múa bút...' : 'Vẽ đi bạn êi!'}
-            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Tỉ lệ ảnh</label>
+                <div className="flex gap-4 p-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
+                    <input type="radio" value="1:1" checked={aiAspectRatio === "1:1"} onChange={e => setAiAspectRatio(e.target.value)} className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300" /> Vuông (1:1)
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
+                    <input type="radio" value="16:9" checked={aiAspectRatio === "16:9"} onChange={e => setAiAspectRatio(e.target.value)} className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300" /> Ngang (16:9)
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Yêu cầu đặc biệt</label>
+                <input type="text" className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" value={aiImageRequirements} onChange={e => setAiImageRequirements(e.target.value)} placeholder="Phông nền gỗ truyền thống..." />
+              </div>
+            </div>
+            
+            <div className="flex justify-end pt-2">
+              <button 
+                type="button" 
+                onClick={handleGenerateAiImage}
+                disabled={aiImageLoading}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-colors flex items-center gap-2 disabled:bg-slate-300"
+              >
+                {aiImageLoading ? 'Đang xử lý hình ảnh...' : 'Bắt đầu tạo thiết kế'}
+              </button>
+            </div>
           </div>
         )}
 
-        <input
-          ref={repFileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={(e) => setRepresentativeFile(e.target.files?.[0] || null)}
-          className="sketch-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-2 file:border-slate-800 file:text-sm file:font-bold file:bg-amber-100 hover:file:bg-amber-200 file:cursor-pointer p-0 overflow-hidden bg-white"
-        />
+        <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2 py-1 focus-within:border-brand-green focus-within:ring-2 focus-within:ring-brand-green/20 overflow-hidden text-slate-600">
+          <input
+            ref={repFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => setRepresentativeFile(e.target.files?.[0] || null)}
+            className="w-full text-sm file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+          />
+        </div>
+        
         {representativeFile && (
-           <div className="mt-2 flex items-center gap-4 bg-slate-50 border-2 border-slate-800 p-2 w-max shadow-[3px_3px_0px_rgba(0,0,0,1)]" style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}>
+           <div className="mt-3 flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-3 w-max">
             <img 
                src={URL.createObjectURL(representativeFile)} 
                alt="Preview" 
-               className="w-16 h-16 object-cover border border-slate-300"
+               className="w-16 h-16 object-cover rounded-lg shadow-sm border border-slate-100"
             />
-            <div className="font-bold text-slate-700">
-               📸 Đã dán ảnh: {representativeFile.name.substring(0,20)}...
+            <div className="font-semibold text-sm text-slate-700">
+               {representativeFile.name.substring(0,25)}{representativeFile.name.length > 25 ? '...' : ''}
             </div>
           </div>
         )}
       </div>
 
-      {/* Hình ảnh sản phẩm */}
       <div className="flex flex-col gap-2">
-        <label className="font-heading text-2xl text-slate-800 font-bold">
-          Rổ ảnh phụ (Giữ Ctrl/Cmd để gom nhiều tấm)
+        <label className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+          Hình ảnh phụ (Kéo thả bổ sung)
         </label>
-        <input
-          ref={prodFileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => setProductFiles(Array.from(e.target.files || []))}
-          className="sketch-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-2 file:border-slate-800 file:text-sm file:font-bold file:bg-amber-100 hover:file:bg-amber-200 file:cursor-pointer p-0 overflow-hidden bg-white"
-        />
+        <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2 py-1 focus-within:border-brand-green focus-within:ring-2 focus-within:ring-brand-green/20 overflow-hidden text-slate-600">
+          <input
+            ref={prodFileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => setProductFiles(Array.from(e.target.files || []))}
+            className="w-full text-sm file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+          />
+        </div>
+        
         {productFiles.length > 0 && (
-          <div className="mt-2 text-slate-600 bg-white border-2 border-slate-400 border-dashed p-3 rounded-lg">
-            <div className="font-bold mb-2">✓ Túm được {productFiles.length} tấm:</div>
-            <div className="flex gap-2 flex-wrap text-sm">
+          <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div className="font-semibold text-sm text-slate-700 mb-3 block">Đã chọn {productFiles.length} hình ảnh:</div>
+            <div className="flex gap-2 flex-wrap text-xs">
               {productFiles.map((file, idx) => (
-                <span key={idx} className="bg-slate-100 px-2 py-1 border border-slate-300 shadow-sm transform -rotate-1">
-                  {file.name.substring(0, 10)}...
+                <span key={idx} className="bg-white px-3 py-1.5 border border-slate-200 rounded-full text-slate-600 shadow-sm">
+                  {file.name.substring(0, 15)}{file.name.length > 15 ? '...' : ''}
                 </span>
               ))}
             </div>
@@ -393,24 +488,14 @@ export default function ProductForm({
         )}
       </div>
 
-      {/* Địa chỉ liên hệ */}
-      <div className="flex flex-col gap-2">
-        <label className="font-heading text-2xl text-slate-800 font-bold">Chỗ để tìm chủ xới</label>
-        <textarea
-          placeholder="Thả địa chỉ/số điện thoại zô đây..."
-          value={contactAddress}
-          onChange={(e) => setContactAddress(e.target.value)}
-          className="sketch-input min-h-[80px]"
-        />
+      <div className="mt-6">
+        <button type="submit" className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-green/20 transition-all text-lg flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed" disabled={loading}>
+          {loading ? 'Đang lưu trữ...' : submitLabel.replace('✓ Vẩy Mực (Lưu)', 'Lưu Thông Tin')}
+        </button>
       </div>
 
-      {/* Nút submit */}
-      <button type="submit" className="sketch-btn mt-4 self-center px-12" disabled={loading}>
-        {loading ? 'Đợi xíu...' : submitLabel}
-      </button>
-
       {message && (
-        <div className={`mt-4 border-2 border-slate-800 p-4 font-bold ${message.includes('Lỗi') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-800'} text-center shadow-[4px_4px_0px_#1e1e1e]`} style={{ borderRadius: '15px 255px 15px 225px / 255px 15px 225px 15px' }}>
+        <div className={`mt-2 p-4 rounded-xl font-medium text-center text-sm border ${message.includes('Lỗi') ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
           {message}
         </div>
       )}

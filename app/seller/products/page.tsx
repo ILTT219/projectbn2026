@@ -53,65 +53,65 @@ export default function SellerProductsPage() {
 
   return (
     <div className="container-custom py-12">
-      <h1 className="font-heading text-5xl font-bold text-slate-800 mb-8 border-b-4 border-slate-800 border-dashed pb-4 inline-block">Kho Hàng Của Xưởng</h1>
+      <h1 className="font-heading text-4xl font-bold text-slate-900 mb-8 pb-4 border-b border-slate-200">Kho Hàng Của Xưởng</h1>
       
-      <div className="flex gap-6 mb-8 text-xl font-heading bg-amber-50 sketch-card p-4 mx-2">
-        <Link href="/seller" className="text-slate-800 hover:text-brand-green transition-transform hover:-translate-y-1 block">
+      <div className="flex gap-6 mb-8 text-lg font-heading bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+        <Link href="/seller" className="text-slate-600 hover:text-brand-green font-semibold transition-colors flex items-center gap-2">
           <span>+</span> Về gian chính (Nhập thêm)
         </Link>
       </div>
 
       {editing && (
-        <div className="sketch-card bg-brand-gold-light/20 p-8 mb-12 relative rotate-1 max-w-3xl mx-auto">
-          <h2 className="font-heading text-4xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-             <span>✏️</span> Đang sửa: <span className="underline decoration-wavy">{editing.name}</span>
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 mb-12 relative max-w-4xl mx-auto">
+          <h2 className="font-heading text-3xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+             <span>✏️</span> Đang sửa: <span className="text-brand-green">{editing.name}</span>
           </h2>
           <ProductForm
             apiPrefix="/api/seller"
             initialProduct={editing}
-            submitLabel="✓ Lưu vết mực"
+            submitLabel="Lưu Thông Tin"
             onSuccess={onFormSuccess}
           />
           <button
-            className="absolute top-4 right-6 text-slate-800 hover:text-red-600 font-heading text-2xl transition-transform hover:scale-125 hover:rotate-12"
+            className="absolute top-4 right-6 text-slate-400 hover:text-red-500 font-heading text-xl transition-colors"
             onClick={() => setEditing(null)}
           >
-            ✕ Gấp lại
+            ✕ Đóng
           </button>
         </div>
       )}
 
-      <div className="sketch-card bg-white p-2 md:p-6 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-2 md:p-6 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left font-sans">
             <thead>
-              <tr className="border-b-4 border-slate-800 text-xl font-heading text-slate-900 uppercase">
-                <th className="py-4 px-4 text-center">Mã</th>
+              <tr className="border-b border-slate-200 text-sm tracking-wider text-slate-500 uppercase bg-slate-50 rounded-lg">
+                <th className="py-4 px-4 text-center rounded-l-lg">Mã</th>
                 <th className="py-4 px-4">Tên</th>
-                <th className="py-4 px-4">Giỏ hàng</th>
-                <th className="py-4 px-4 text-right">Làm gì?</th>
+                <th className="py-4 px-4">Nhóm Sản Phẩm</th>
+                <th className="py-4 px-4 text-right rounded-r-lg">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y-2 divide-slate-300 divide-dashed text-xl">
+            <tbody className="divide-y divide-slate-100 text-base">
               {products.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-100 transition-colors">
-                  <td className="py-4 px-4 text-center text-slate-500 font-bold font-serif">{p.id}</td>
+                <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-4 px-4 text-center text-slate-500 font-bold">{p.id}</td>
                   <td className="py-4 px-4 font-bold text-slate-800">{p.name}</td>
                   <td className="py-4 px-4 text-slate-700">
-                    <span className="border-2 border-slate-800 bg-slate-50 px-2 py-0.5" style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}>
+                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-sm font-semibold">
                       {categories.find((c) => c.id === p.category_id)?.name || p.category_id}
                     </span>
                   </td>
-                  <td className="py-4 px-4 text-right space-x-4 font-heading text-2xl">
+                  <td className="py-4 px-4 text-right space-x-4">
                     <button 
                       onClick={() => startEdit(p)} 
-                      className="text-brand-green hover:text-brand-green-dark hover:-translate-y-1 transform transition-all inline-block"
+                      className="text-brand-green hover:text-brand-green-dark transition-colors font-medium"
                     >
                       Sửa
                     </button>
                     <button 
                       onClick={() => handleDelete(p.id)} 
-                      className="text-red-600 hover:text-red-800 hover:-translate-y-1 transform transition-all inline-block"
+                      className="text-red-500 hover:text-red-700 transition-colors font-medium"
                     >
                       Xóa
                     </button>
@@ -121,8 +121,8 @@ export default function SellerProductsPage() {
               
               {products.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-12 text-center text-slate-500 font-heading text-3xl">
-                    Kho trống không, gió lùa lạnh ngắt...
+                  <td colSpan={4} className="py-12 text-center text-slate-500 text-xl font-medium">
+                    Bạn chưa có sản phẩm nào trong kho.
                   </td>
                 </tr>
               )}

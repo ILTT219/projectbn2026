@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const decoded: any = jwt.verify(token, secret)
-    return NextResponse.json({ loggedIn: true, role: decoded.role })
+    return NextResponse.json({ loggedIn: true, role: decoded.role, email: decoded.email })
   } catch (e) {
     return NextResponse.json({ loggedIn: false })
   }

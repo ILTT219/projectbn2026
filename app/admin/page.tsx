@@ -3,8 +3,11 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 
+const OWNER_EMAIL = 't219t3@gmail.com'
+
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'users' | 'products' | 'admin'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'products' | 'admin' | 'manage_admins'>('users')
+  const [isOwner, setIsOwner] = useState(false)
   
   // States cho Người chờ duyệt
   const [pendingUsers, setPendingUsers] = useState<any[]>([])
@@ -18,6 +21,22 @@ export default function AdminPage() {
   const [newAdminEmail, setNewAdminEmail] = useState('')
   const [newAdminPassword, setNewAdminPassword] = useState('')
   const [adminStatus, setAdminStatus] = useState({ loading: false, error: '', success: '' })
+
+  // States cho Quản lý QTV (chỉ Owner)
+  const [adminList, setAdminList] = useState<any[]>([])
+  const [loadingAdmins, setLoadingAdmins] = useState(false)
+
+  // Kiểm tra quyền Owner
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.loggedIn && data.email === OWNER_EMAIL) {
+          setIsOwner(true)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const fetchUsers = async () => {
     setLoadingUsers(true)
@@ -37,9 +56,19 @@ export default function AdminPage() {
     } finally { setLoadingProducts(false) }
   }
 
+  const fetchAdmins = async () => {
+    setLoadingAdmins(true)
+    try {
+      const res = await fetch('/api/admin/manage')
+      const result = await res.json()
+      if (res.ok) setAdminList(result.data || [])
+    } finally { setLoadingAdmins(false) }
+  }
+
   useEffect(() => {
     if (activeTab === 'users') fetchUsers()
     if (activeTab === 'products') fetchProducts()
+    if (activeTab === 'manage_admins') fetchAdmins()
   }, [activeTab])
 
   const handleApproveUser = async (id: number) => {
@@ -98,13 +127,26 @@ export default function AdminPage() {
     }
   }
 
+  const handleRemoveAdmin = async (id: number, email: string) => {
+    if (email === OWNER_EMAIL) return alert('Không thể xoá tài khoản Owner!')
+    if (!confirm(`Bạn có chắc muốn xoá QTV ${email}?`)) return
+    try {
+      const res = await fetch('/api/admin/manage', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetAdminId: id })
+      })
+      if (res.ok) fetchAdmins()
+    } catch(e) {}
+  }
+
   return (
     <div className="container-custom py-12 max-w-5xl">
       <h1 className="font-heading text-4xl font-bold text-slate-800 mb-8 border-b-4 border-amber-500 pb-4 inline-block shadow-sm px-4 pt-2 bg-white rounded-t-xl">
         ⚖️ Bàn Kiểm Duyệt Tối Cao
       </h1>
       
-      <div className="flex gap-4 mb-6 border-b border-slate-200">
+      <div className="flex gap-4 mb-6 border-b border-slate-200 flex-wrap">
         <button 
            className={`pb-3 px-4 font-heading font-semibold text-lg transition-colors ${activeTab === 'users' ? 'border-b-4 border-amber-500 text-amber-600' : 'text-slate-500 hover:text-slate-800'}`}
            onClick={() => setActiveTab('users')}
@@ -117,12 +159,24 @@ export default function AdminPage() {
         >
           Sản phẩm chờ duyệt ({pendingProducts.length})
         </button>
-        <button 
-           className={`pb-3 px-4 font-heading font-semibold text-lg transition-colors ${activeTab === 'admin' ? 'border-b-4 border-amber-500 text-amber-600' : 'text-slate-500 hover:text-slate-800'}`}
-           onClick={() => setActiveTab('admin')}
-        >
-          Tạo Quản Trị Viên
-        </button>
+
+        {/* Chỉ Owner mới thấy các tab quản lý QTV */}
+        {isOwner && (
+          <>
+            <button 
+               className={`pb-3 px-4 font-heading font-semibold text-lg transition-colors ${activeTab === 'admin' ? 'border-b-4 border-amber-500 text-amber-600' : 'text-slate-500 hover:text-slate-800'}`}
+               onClick={() => setActiveTab('admin')}
+            >
+              🔑 Tạo QTV Mới
+            </button>
+            <button 
+               className={`pb-3 px-4 font-heading font-semibold text-lg transition-colors ${activeTab === 'manage_admins' ? 'border-b-4 border-amber-500 text-amber-600' : 'text-slate-500 hover:text-slate-800'}`}
+               onClick={() => setActiveTab('manage_admins')}
+            >
+              👑 Quản lý QTV
+            </button>
+          </>
+        )}
       </div>
 
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 min-h-[50vh]">
@@ -190,10 +244,16 @@ export default function AdminPage() {
            </div>
         )}
 
-        {/* TAB CREATE ADMIN */}
-        {activeTab === 'admin' && (
+        {/* TAB CREATE ADMIN — Chỉ Owner */}
+        {activeTab === 'admin' && isOwner && (
            <div className="max-w-md">
-             <h2 className="font-heading font-bold text-xl mb-4">Kết nạp Quản Trị Viên mới</h2>
+             <div className="flex items-center gap-3 mb-6">
+               <span className="text-3xl">👑</span>
+               <div>
+                 <h2 className="font-heading font-bold text-xl">Kết nạp Quản Trị Viên mới</h2>
+                 <p className="text-sm text-slate-500">Chỉ Owner (t219t3) mới có quyền thực hiện</p>
+               </div>
+             </div>
              <form onSubmit={handleCreateAdmin} className="flex flex-col gap-4">
                <div>
                  <label className="block text-sm font-semibold mb-1">Email</label>
@@ -211,6 +271,46 @@ export default function AdminPage() {
                  {adminStatus.loading ? 'Đang tạo...' : 'Kết nạp QTV'}
                </button>
              </form>
+           </div>
+        )}
+
+        {/* TAB MANAGE ADMINS — Chỉ Owner */}
+        {activeTab === 'manage_admins' && isOwner && (
+           <div>
+             <div className="flex items-center gap-3 mb-6">
+               <span className="text-3xl">👑</span>
+               <div>
+                 <h2 className="font-heading font-bold text-xl">Danh sách Quản Trị Viên</h2>
+                 <p className="text-sm text-slate-500">Quản lý và giám sát tất cả QTV trong hệ thống</p>
+               </div>
+             </div>
+             {loadingAdmins ? <p>Đang tải...</p> : adminList.length === 0 ? <p className="text-slate-500">Chưa có QTV nào.</p> : (
+               <div className="flex flex-col gap-3">
+                 {adminList.map(admin => (
+                   <div key={admin.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                     <div className="flex items-center gap-3">
+                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${admin.email === OWNER_EMAIL ? 'bg-amber-500' : 'bg-slate-600'}`}>
+                         {admin.email === OWNER_EMAIL ? '👑' : 'QTV'}
+                       </div>
+                       <div>
+                         <p className="font-heading font-semibold text-slate-800">{admin.email}</p>
+                         <span className={`text-xs font-bold px-2 py-1 rounded mt-1 inline-block ${admin.email === OWNER_EMAIL ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>
+                           {admin.email === OWNER_EMAIL ? 'OWNER' : 'ADMIN'}
+                         </span>
+                       </div>
+                     </div>
+                     {admin.email !== OWNER_EMAIL && (
+                       <button 
+                         onClick={() => handleRemoveAdmin(admin.id, admin.email)} 
+                         className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm"
+                       >
+                         Xoá QTV
+                       </button>
+                     )}
+                   </div>
+                 ))}
+               </div>
+             )}
            </div>
         )}
       </div>

@@ -81,7 +81,6 @@ export default function Home() {
             <h2 className="font-heading text-3xl md:text-4xl font-bold text-slate-900 mb-4">
               Danh Mục <span className="text-brand-green">Sản Phẩm</span>
             </h2>
-            <p className="text-slate-600 font-sans">Mua sắm an tâm với các sản phẩm địa phương đã được đánh giá, xếp hạng tiêu chuẩn chất lượng cao.</p>
           </div>
           <Link href="/products" className="text-brand-green font-semibold hover:text-brand-green-dark transition-colors inline-flex items-center gap-1 group">
             Xem tất cả <span className="group-hover:translate-x-1 transition-transform">→</span>

@@ -7,13 +7,12 @@ export default function Footer() {
         
         {/* Brand Info */}
         <div className="md:col-span-2 space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-brand-green rounded-lg flex items-center justify-center text-white font-heading font-extrabold text-xl shadow-md">
-              O
+          <div className="flex items-center gap-3 group">
+            <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm border-2 border-brand-green/20 flex items-center justify-center bg-white transition-transform group-hover:scale-105">
+              <img src="https://raw.githubusercontent.com/ILTT219/Image-storage/c674f7253196749a55fbdd18d6b540a4cdc5e1f2/12.png" alt="OCOP Logo" className="w-full h-full object-cover" />
             </div>
             <div>
-              <h3 className="font-heading font-bold text-white text-xl tracking-tight">OCOP Tinh Hoa</h3>
-              <p className="text-[0.65rem] font-sans font-semibold tracking-[0.15em] text-brand-green uppercase">Bắc Ninh</p>
+              <h3 className="font-heading font-bold text-white text-xl tracking-tight leading-tight">OCOP Bắc Ninh</h3>
             </div>
           </div>
           <p className="leading-relaxed opacity-90 max-w-sm">

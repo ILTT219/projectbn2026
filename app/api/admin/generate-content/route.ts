@@ -1,48 +1,79 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || '',
-  baseURL: 'https://api.groq.com/openai/v1',
-});
+import { GoogleGenAI, Type } from "@google/genai";
 
 export async function POST(req: Request) {
   try {
     const data = await req.json();
     
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: "Chưa cấu hình GEMINI_API_KEY" }, { status: 400 });
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const model = "gemini-3.1-pro-preview";
+    
     const prompt = `
-    Bạn là một chuyên gia copywriter và am hiểu sâu sắc về văn hóa Kinh Bắc (Bắc Ninh).
-    Hãy viết nội dung quảng bá cho sản phẩm OCOP sau đây:
-    
-    - Tên sản phẩm: ${data.productName}
-    - Chủ thể OCOP: ${data.subject}
-    - Địa phương: ${data.location}
-    - Nhóm sản phẩm: ${data.productGroup}
-    - Điểm nổi bật: ${data.highlights}
-    
-    Yêu cầu:
-    1. Mô tả chi tiết (300-600 từ): 
-       - Giới thiệu về nguồn gốc, truyền thống của địa phương ${data.location} gắn liền với sản phẩm.
-       - Lồng ghép khéo léo các yếu tố văn hóa Bắc Ninh (như dân ca Quan họ, làng nghề truyền thống, tinh thần hiếu học, sự tỉ mỉ của người thợ...) nếu phù hợp.
-       - Phân tích sâu các điểm nổi bật: ${data.highlights}.
-       - Văn phong chuyên nghiệp, truyền cảm hứng, đậm chất văn hóa.
-    
-    Lưu ý quan trọng: 
-    - Sử dụng tiếng Việt chuẩn, không sai chính tả.
-    - Tuyệt đối không sử dụng các thẻ HTML (như <p>, </p>, <br>, <div>...).
-    - Định dạng nội dung là văn bản thuần túy (Plain Text).
-    - Chia nội dung thành các đoạn văn rõ ràng, mỗi đoạn cách nhau bằng 2 lần xuống dòng.
-    - Xuất dữ liệu ở định dạng JSON với duy nhất 1 trường là "description" chứa đoạn văn bản.
+      Bạn là một chuyên gia copywriter và am hiểu sâu sắc về văn hóa Kinh Bắc (Bắc Ninh).
+      Hãy viết nội dung quảng bá cho sản phẩm OCOP sau đây:
+      
+      - Tên sản phẩm: ${data.productName}
+      - Chủ thể OCOP: ${data.subject}
+      - Địa phương: ${data.location}
+      - Nhóm sản phẩm: ${data.productGroup}
+      - Điểm nổi bật: ${data.highlights}
+      - Hạng chứng nhận OCOP: ${data.certification || 'Chưa rõ'}
+      - Câu chuyện địa phương: ${data.localStory || 'Chưa cung cấp'}
+      
+      Yêu cầu:
+      1. Mô tả chi tiết (300-600 từ): 
+         - Giới thiệu về nguồn gốc, truyền thống của địa phương ${data.location} gắn liền với sản phẩm.
+         - Lồng ghép khéo léo các yếu tố văn hóa Bắc Ninh (như dân ca Quan họ, làng nghề truyền thống, tinh thần hiếu học, sự tỉ mỉ của người thợ...) nếu phù hợp.
+         - Phân tích sâu các điểm nổi bật: ${data.highlights}.
+         - Đề cập đến hạng chứng nhận OCOP: ${data.certification || 'Sản phẩm tiêu biểu'}.
+         - Sử dụng thông tin từ câu chuyện địa phương: ${data.localStory || 'Câu chuyện truyền thống'} để làm nội dung thêm phong phú và chân thực.
+         - Văn phong chuyên nghiệp, truyền cảm hứng, đậm chất văn hóa.
+      
+      2. Nội dung chuẩn SEO:
+         - Tiêu đề SEO (dưới 60 ký tự).
+         - Meta Description (dưới 160 ký tự).
+         - Danh sách 5-7 từ khóa chính.
+         - Cấu trúc các thẻ H1, H2, H3 gợi ý.
+      
+      Lưu ý quan trọng: 
+      - Sử dụng tiếng Việt chuẩn, không sai chính tả.
+      - Tuyệt đối không sử dụng các thẻ HTML (như <p>, </p>, <br>, <div>...).
+      - Định dạng nội dung là văn bản thuần túy (Plain Text).
+      - Chia nội dung thành các đoạn văn rõ ràng, mỗi đoạn cách nhau bằng 2 lần xuống dòng để người dùng dễ dàng sao chép và sử dụng ngay.
+      - Tuyệt đối không bịa đặt thông tin kỹ thuật hay số liệu không có trong dữ liệu đầu vào.
+      - Chỉ sử dụng dữ liệu người dùng cung cấp và kiến thức văn hóa để làm giàu nội dung.
     `;
 
-    const response = await openai.chat.completions.create({
-      model: "llama-3.1-70b-versatile", // Using a reliable groq model instead of the openai/gpt-oss-120b if it fails, wait, the environment says GROQ_MODEL=openai/gpt-oss-120b? There is no such model on Groq. The env file is probably for something else? Let's use llama-3.1-70b-versatile. Wait, let me check package.json for what they used previously. Or I can just use process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'.
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: "json_object" },
+    const response = await ai.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            description: {
+              type: Type.STRING,
+              description: "Mô tả chi tiết sản phẩm (300-600 từ)",
+            },
+            seoContent: {
+              type: Type.STRING,
+              description: "Nội dung chuẩn SEO bao gồm tiêu đề, meta, từ khóa và cấu trúc heading",
+            },
+          },
+          required: ["description", "seoContent"],
+        },
+      },
     });
 
-    const result = response.choices[0]?.message?.content || '{}';
-    return NextResponse.json(JSON.parse(result));
+    const resultStr = response.text || "{}";
+    const resultObj = JSON.parse(resultStr);
+    
+    return NextResponse.json(resultObj);
   } catch (err: any) {
     console.error("AI Generation Error", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
