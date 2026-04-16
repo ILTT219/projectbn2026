@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-green: #166534; /* Green-800 */
+  --color-brand-green-light: #22c55e; /* Green-500 */
+  --color-brand-green-dark: #14532d; /* Green-900 */
+  --color-brand-gold: #ca8a04; /* Yellow-600 */
+  --color-brand-gold-light: #eab308; /* Yellow-500 */
+  --color-brand-gold-dark: #a16207; /* Yellow-700 */
+  --color-brand-red: #b91c1c; /* Red-700 */
+  
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Be Vietnam Pro', system-ui, sans-serif;
+}
+
+/* Reset cơ bản */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  @apply text-slate-800 font-sans antialiased text-base bg-slate-50;
+}
+
+@layer components {
+  .container-custom {
+    width: 100%;
+    max-width: 80rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  @media (min-width: 640px) {
+    .container-custom {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .container-custom {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+  
+  /* Khung Card chuyên nghiệp */
+  .ocop-card {
+    @apply bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden;
+  }
+
+  /* Nút bấm chuyên nghiệp */
+  .ocop-btn {
+    @apply font-heading text-sm font-semibold tracking-wide border border-transparent bg-brand-green text-white py-2.5 px-6 rounded-lg shadow-sm hover:bg-brand-green-dark transition-all inline-flex items-center justify-center;
+  }
+  
+  .ocop-btn-alt {
+    @apply font-heading text-sm font-semibold tracking-wide border border-slate-200 bg-white text-slate-800 py-2.5 px-6 rounded-lg shadow-sm hover:bg-slate-50 transition-all inline-flex items-center justify-center;
+  }
+  
+  /* Input chuẩn hóa */
+  .ocop-input {
+    @apply w-full bg-white border border-slate-300 p-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green transition-all text-sm font-sans;
+  }
+}
+
+/* Tùy chỉnh Scrollbar thanh lịch hơn */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
