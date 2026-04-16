@@ -30,67 +30,44 @@ export default function Home() {
       {/* Hero Banner Area */}
       <section className="relative bg-white border-b border-slate-200">
         <div className="container-custom">
-          <div className="flex flex-col lg:flex-row items-center py-12 lg:py-20 gap-10">
-            {/* Text Content */}
-            <div className="flex-1 space-y-6 lg:pr-10 z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-green/10 text-brand-green font-semibold text-sm">
-                <span className="w-2 h-2 rounded-full bg-brand-green animate-pulse"></span>
-                Chương trình Mỗi Xã Một Sản Phẩm (OCOP)
-              </div>
-              <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-tight">
-                Tinh Hoa <br className="hidden lg:block" /> 
-                <span className="text-brand-green">Nông Sản Bắc Ninh</span>
-              </h1>
-              <p className="text-lg text-slate-600 leading-relaxed max-w-2xl font-sans">
-                Hệ thống phân phối chính thức các sản phẩm OCOP đạt chuẩn 3 sao - 5 sao từ vùng đất Kinh Bắc. Đảm bảo nguồn gốc, minh bạch chất lượng và tôn vinh giá trị truyền thống.
-              </p>
-              <div className="pt-4 flex flex-wrap gap-4">
-                <Link href="/products" className="ocop-btn text-base py-3 px-8">
-                  Khám Phá Ngay
-                </Link>
-                <Link href="/about" className="ocop-btn-alt text-base py-3 px-8">
-                  Tìm Hiểu Hệ Thống
-                </Link>
-              </div>
-
-              {/* Product Search Form */}
-              <form action="/products" method="GET" className="mt-8 relative max-w-lg">
-                <input 
-                  type="text" 
-                  name="search" 
-                  placeholder="Tìm kiếm nông sản, đặc sản OCOP..." 
-                  className="w-full bg-white border border-slate-200 text-slate-900 rounded-full py-3.5 pl-6 pr-16 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green transition-all"
-                  required
-                />
-                <button type="submit" className="absolute right-2 top-2 bottom-2 aspect-square bg-brand-green text-white rounded-full flex items-center justify-center hover:bg-brand-green-dark transition-colors" aria-label="Tìm kiếm">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </button>
-              </form>
-            </div>
-            
+          <div className="flex flex-col items-center text-center py-12 lg:py-16 gap-10">
             {/* Featured Image */}
-            <div className="flex-1 w-full relative">
+            <div className="w-full max-w-5xl relative">
               {/* Decor element */}
               <div className="absolute -inset-4 bg-gradient-to-r from-brand-green/20 to-brand-gold/20 blur-2xl rounded-[3rem] opacity-60 z-0"></div>
               
-              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-white z-10 w-full group">
-                <div className="absolute inset-0 z-0 bg-slate-900/10 group-hover:bg-transparent transition-colors duration-500"></div>
-                <div className="absolute inset-0 transition-transform duration-700 hover:scale-105" 
-                     style={{ backgroundImage: `url(${banner})`, backgroundSize: "cover", backgroundPosition: "center center" }}>
-                </div>
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white z-10 w-full group mx-auto">
+                <div className="absolute inset-0 z-10 bg-slate-900/10 group-hover:bg-transparent transition-colors duration-500 pointer-events-none"></div>
+                <img 
+                  src={banner} 
+                  alt="OCOP Bắc Ninh" 
+                  className="w-full h-auto transition-transform duration-700 group-hover:scale-105 block"
+                />
+              </div>
+            </div>
+
+            {/* Actions Content */}
+            <div className="flex flex-col items-center w-full max-w-3xl z-10">
+              <div className="flex w-full justify-center gap-4 flex-col sm:flex-row items-center">
+                <Link href="/products" className="ocop-btn text-base py-3.5 px-8 whitespace-nowrap shadow-md">
+                   Khám Phá Ngay
+                </Link>
                 
-                {/* Badge Overlay */}
-                <div className="absolute bottom-6 left-6 right-6 p-4 rounded-xl bg-white/90 backdrop-blur-sm border border-white/50 shadow-lg flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Chứng nhận</p>
-                    <p className="font-heading font-bold text-lg text-slate-900">Sản phẩm Chất lượng</p>
-                  </div>
-                  <div className="w-12 h-12 bg-brand-gold rounded-full flex items-center justify-center text-white shadow-md">
-                   ★
-                  </div>
-                </div>
+                {/* Product Search Form */}
+                <form action="/products" method="GET" className="relative w-full max-w-md">
+                  <input 
+                    type="text" 
+                    name="search" 
+                    placeholder="Tìm kiếm nông sản, đặc sản OCOP..." 
+                    className="w-full bg-white border border-slate-200 text-slate-900 rounded-full py-3.5 pl-6 pr-16 shadow-md focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green transition-all"
+                    required
+                  />
+                  <button type="submit" className="absolute right-2 top-2 bottom-2 aspect-square bg-brand-green text-white rounded-full flex items-center justify-center hover:bg-brand-green-dark transition-colors" aria-label="Tìm kiếm">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
+                </form>
               </div>
             </div>
           </div>

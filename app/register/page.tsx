@@ -10,6 +10,11 @@ export default function RegisterPage() {
   const [role, setRole] = useState('user')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [taxId, setTaxId] = useState('')
+  const [businessRegistration, setBusinessRegistration] = useState('')
+  const [ocopCertificate, setOcopCertificate] = useState('')
+  const [businessRegistrationFile, setBusinessRegistrationFile] = useState<File | null>(null)
+  const [ocopCertificateFile, setOcopCertificateFile] = useState<File | null>(null)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,10 +23,29 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
+      const formData = new FormData()
+      formData.append('email', email)
+      formData.append('password', password)
+      formData.append('role', role)
+
+      if (role === 'seller') {
+         formData.append('tax_id', taxId)
+         if (businessRegistrationFile) {
+            formData.append('business_registration_file', businessRegistrationFile)
+         } else {
+            formData.append('business_registration', businessRegistration)
+         }
+
+         if (ocopCertificateFile) {
+            formData.append('ocop_certificate_file', ocopCertificateFile)
+         } else {
+            formData.append('ocop_certificate', ocopCertificate)
+         }
+      }
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role }),
+        body: formData,
         credentials: 'include',
       })
 
@@ -118,6 +142,64 @@ export default function RegisterPage() {
                   </label>
                </div>
             </div>
+
+            {role === 'seller' && (
+              <>
+                <div className="flex flex-col gap-1.5 mt-2">
+                   <label className="font-heading text-sm font-semibold text-slate-700">Mã Số Thuế *</label>
+                   <input
+                     type="text"
+                     value={taxId}
+                     onChange={(e) => setTaxId(e.target.value)}
+                     required={role === 'seller'}
+                     className="ocop-input"
+                     placeholder="Ví dụ: 0101234567"
+                   />
+                </div>
+                <div className="flex flex-col gap-1.5 mt-2">
+                   <label className="font-heading text-sm font-semibold text-slate-700">Giấy Đăng ký KH / HTX *</label>
+                   <input
+                     type="text"
+                     value={businessRegistration}
+                     onChange={(e) => setBusinessRegistration(e.target.value)}
+                     disabled={!!businessRegistrationFile}
+                     required={role === 'seller' && !businessRegistrationFile}
+                     className="ocop-input mb-1"
+                     placeholder="Đường dẫn minh chứng..."
+                   />
+                   <div className="flex items-center gap-2">
+                     <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Tải file lên:</span>
+                     <input
+                       type="file"
+                       accept="image/*,.pdf"
+                       onChange={(e) => setBusinessRegistrationFile(e.target.files?.[0] || null)}
+                       className="text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-brand-green/10 file:text-brand-green hover:file:bg-brand-green/20 cursor-pointer overflow-hidden w-full max-w-[200px]"
+                     />
+                   </div>
+                </div>
+                <div className="flex flex-col gap-1.5 mt-2">
+                   <label className="font-heading text-sm font-semibold text-slate-700">Giấy Chứng nhận OCOP *</label>
+                   <input
+                     type="text"
+                     value={ocopCertificate}
+                     onChange={(e) => setOcopCertificate(e.target.value)}
+                     disabled={!!ocopCertificateFile}
+                     required={role === 'seller' && !ocopCertificateFile}
+                     className="ocop-input mb-1"
+                     placeholder="Đường dẫn chứng nhận..."
+                   />
+                   <div className="flex items-center gap-2">
+                     <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Tải file lên:</span>
+                     <input
+                       type="file"
+                       accept="image/*,.pdf"
+                       onChange={(e) => setOcopCertificateFile(e.target.files?.[0] || null)}
+                       className="text-sm file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-brand-green/10 file:text-brand-green hover:file:bg-brand-green/20 cursor-pointer overflow-hidden w-full max-w-[200px]"
+                     />
+                   </div>
+                </div>
+              </>
+            )}
 
             {error && (
               <div className="bg-red-50 text-brand-red text-sm font-medium p-3 rounded-lg border border-red-100 flex items-start gap-2 mt-2">

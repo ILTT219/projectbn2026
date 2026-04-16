@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
 
 export default function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -9,45 +8,49 @@ export default function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Bảo vệ khu vực Admin & Seller
-  if (pathname.startsWith('/admin') || pathname.startsWith('/seller')) {
-    
-    // Nếu vào cổng đăng nhập hệ thống mới, cho qua thoải mái
-    if (pathname === '/login' || pathname.startsWith('/api/auth/login')) {
-      return NextResponse.next()
-    }
+  const isAdminLoginPage = pathname.startsWith('/admin/login')
+  const isSellerRoute = pathname.startsWith('/seller')
+  const isAdminRoute = pathname.startsWith('/admin')
 
-    const token = req.cookies.get('admin_token')?.value
-    const secret = process.env.ADMIN_JWT_SECRET
-    
-    if (!token || !secret) {
-      return NextResponse.redirect(new URL('/login', req.url))
-    }
-    
-    try {
-      const decoded: any = jwt.verify(token, secret)
-      const userRole = decoded.role
-      
-      // Luật cấm: Chủ xưởng (seller) không được bò vào phòng Quản trị (Admin)
-      if (pathname.startsWith('/admin') && userRole !== 'admin') {
-         return NextResponse.redirect(new URL('/seller', req.url))
-      }
-      
-      // Khách hàng (User) thì cấm tiệt vào cả 2
-      if (userRole === 'user') {
-         return NextResponse.redirect(new URL('/', req.url))
-      }
-
-      // Admin thì vào được cả Admin lẫn Seller, hoặc Seller vào vùng Seller
-      return NextResponse.next()
-    } catch (e) {
-      return NextResponse.redirect(new URL('/login', req.url))
-    }
+  // Not a protected route
+  if (!isSellerRoute && (!isAdminRoute || isAdminLoginPage)) {
+    return NextResponse.next()
   }
 
-  return NextResponse.next()
+  const token = req.cookies.get('admin_token')?.value
+
+  if (!token) {
+    if (isAdminRoute) return NextResponse.redirect(new URL('/admin/login', req.url))
+    if (isSellerRoute) return NextResponse.redirect(new URL('/login', req.url))
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  try {
+    // Basic edge decoding of JWT payload (without signature verification, which is done on API routes)
+    const payloadBase64 = token.split('.')[1]
+    const decodedVal = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'))
+    const decoded = JSON.parse(decodedVal)
+
+    if (isAdminRoute && decoded.role !== 'admin') {
+      return NextResponse.redirect(new URL('/admin/login', req.url))
+    }
+
+    if (isSellerRoute && decoded.role !== 'seller' && decoded.role !== 'admin') {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+
+    // Nếu chưa được duyệt, không cho vào trong (ngoại trừ QTV)
+    if (!decoded.is_approved && decoded.role !== 'admin') {
+       return NextResponse.redirect(new URL('/login', req.url))
+    }
+
+    return NextResponse.next()
+  } catch (error) {
+    if (isAdminRoute) return NextResponse.redirect(new URL('/admin/login', req.url))
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/seller/:path*'],
+  matcher: ['/admin/:path*', '/seller/:path*']
 }

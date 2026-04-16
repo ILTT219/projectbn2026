@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from('users')
-      .select('id, password, role')
+      .select('id, password, role, is_approved')
       .eq('email', email)
       .single()
 
@@ -31,13 +31,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Mật thư sai toét' }, { status: 401 })
     }
 
+    if (!data.is_approved && data.role !== 'admin') {
+      return NextResponse.json({ error: 'Tài khoản của bạn đang chờ Quản trị viên duyệt' }, { status: 403 })
+    }
+
     const secret = process.env.ADMIN_JWT_SECRET
     if (!secret) {
       throw new Error('ADMIN_JWT_SECRET is not defined')
     }
     
     // Đóng gói thông tin phân quyền vào Phiếu bảo hành (JWT)
-    const token = jwt.sign({ user_id: data.id, email, role: data.role }, secret, { expiresIn: '8h' })
+    const token = jwt.sign({ user_id: data.id, email, role: data.role, is_approved: data.is_approved }, secret, { expiresIn: '8h' })
 
     const res = NextResponse.json({ success: true, role: data.role })
     

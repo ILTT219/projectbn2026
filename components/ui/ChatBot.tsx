@@ -36,16 +36,7 @@ export default function ChatBot() {
       const botMessage: ChatMessage = { role: "bot", content: reply }
       setMessages((prev) => [...prev, botMessage])
 
-      // Kiểm tra nếu response chứa link sản phẩm và tự động điều hướng
-      const productLinkRegex = /\/products\/(\d+)/
-      const match = reply.match(productLinkRegex)
-      if (match) {
-        const productId = match[1]
-        setTimeout(() => {
-          router.push(`/products/${productId}`)
-          setOpen(false)
-        }, 800)
-      }
+
     } catch (err) {
       const botMessage: ChatMessage = { role: "bot", content: "Không thể kết nối đến server" }
       setMessages((prev) => [...prev, botMessage])
@@ -165,30 +156,57 @@ export default function ChatBot() {
                 </div>
               )}
 
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-                  }}
-                >
+              {messages.map((msg, i) => {
+                const isUser = msg.role === "user"
+                // Parse all product links
+                const productLinks = [...msg.content.matchAll(/\/products\/(\d+)/g)]
+                let formattedContent = msg.content
+                
+                return (
                   <div
+                    key={i}
                     style={{
-                      maxWidth: "80%",
-                      padding: "10px 14px",
-                      borderRadius: msg.role === "user" ? "16px 4px 16px 16px" : "4px 16px 16px 16px",
-                      background: msg.role === "user" ? "#16a34a" : "#e5e7eb",
-                      color: msg.role === "user" ? "white" : "#333",
-                      fontSize: 14,
-                      lineHeight: 1.5,
-                      wordWrap: "break-word",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: isUser ? "flex-end" : "flex-start",
                     }}
                   >
-                    {msg.content}
+                    <div
+                      style={{
+                        maxWidth: "80%",
+                        padding: "10px 14px",
+                        borderRadius: isUser ? "16px 4px 16px 16px" : "4px 16px 16px 16px",
+                        background: isUser ? "#16a34a" : "#e5e7eb",
+                        color: isUser ? "white" : "#333",
+                        fontSize: 14,
+                        lineHeight: 1.5,
+                        wordWrap: "break-word",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {formattedContent}
+                    </div>
+                    {productLinks.length > 0 && !isUser && (
+                       <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, width: "80%" }}>
+                         {productLinks.map((match, idx) => (
+                           <a 
+                             key={idx} 
+                             href={match[0]}
+                             style={{
+                               display: "flex", alignItems: "center", justifyContent: "space-between",
+                               padding: "8px 12px", background: "white", border: "1px solid #16a34a",
+                               borderRadius: 8, textDecoration: "none", color: "#16a34a", fontSize: 13, fontWeight: "bold"
+                             }}
+                           >
+                             <span style={{flex:1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>Sản phẩm đề xuất #{match[1]}</span>
+                             <span>→</span>
+                           </a>
+                         ))}
+                       </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
 
               {loading && (
                 <div style={{ display: "flex", gap: 4 }}>

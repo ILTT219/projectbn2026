@@ -33,9 +33,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return NextResponse.json({ error: 'Khô ráo nhé, không được xoá đồ của người khác' }, { status: 403 })
   }
 
-  const { error } = await supabaseAdmin.from('products').delete().eq('id', id)
-  if (error) return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
-  return NextResponse.json({ success: true })
+  // Thay vì xóa ngay, chúng ta chuyển trạng thái thành chờ admin duyệt xoá
+  const { error } = await supabaseAdmin.from('products').update({ status: 'pending_delete' }).eq('id', id)
+  if (error) return NextResponse.json({ error: 'Delete request failed' }, { status: 500 })
+  return NextResponse.json({ success: true, message: 'Đã gửi yêu cầu xoá cho Quản trị viên' })
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -82,11 +83,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     if (Object.keys(updatePayload).length > 0) {
+      // Khi cập nhật sản phẩm, chuyển trạng thái về chờ duyệt
+      updatePayload.status = 'pending_edit'
       const { error } = await supabaseAdmin.from('products').update(updatePayload).eq('id', id)
       if (error) throw error
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, message: 'Đã lưu và đang chờ duyệt chỉnh sửa' })
   } catch (err) {
     return NextResponse.json({ error: 'Update failed' }, { status: 500 })
   }
