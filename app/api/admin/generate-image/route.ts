@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const prompt = `
       Create a professional artistic advertising background for a Vietnamese OCOP (One Commune, One Product) product.
       
-      ${hasRealImages ? \`I have provided \${data.realImagesBase64.length} real photo(s) of the product. Please use these photos as the primary reference for the product's appearance, packaging, and label. Ensure the product in the poster looks consistent with the provided images.\` : ''}
+      ${hasRealImages ? `I have provided ${data.realImagesBase64.length} real photo(s) of the product. Please use these photos as the primary reference for the product's appearance, packaging, and label. Ensure the product in the poster looks consistent with the provided images.` : ''}
       
       Product Name: ${data.productName}
       Origin: ${data.location}
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       const resParts = response.candidates[0]?.content?.parts || [];
       for (const part of resParts) {
         if (part.inlineData) {
-          imageUrl = \`data:\${part.inlineData.mimeType || 'image/png'};base64,\${part.inlineData.data}\`;
+          imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
           break;
         }
       }
