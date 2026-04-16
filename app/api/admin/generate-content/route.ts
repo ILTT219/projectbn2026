@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI, Type } from "@google/genai";
 
 export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-    const model = "gemini-3.1-pro-preview";
-    
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "Missing GROQ_API_KEY in .env.local" }, { status: 500 });
+    }
+
     const prompt = `
       Bạn là một chuyên gia copywriter và am hiểu sâu sắc về văn hóa Kinh Bắc (Bắc Ninh).
       Hãy viết nội dung quảng bá cho sản phẩm OCOP sau đây:
@@ -17,61 +18,54 @@ export async function POST(req: Request) {
       - Địa phương: ${data.location}
       - Nhóm sản phẩm: ${data.productGroup}
       - Điểm nổi bật: ${data.highlights}
-      - Hạng chứng nhận OCOP: ${data.certification || 'Chưa rõ'}
-      - Câu chuyện địa phương: ${data.localStory || 'Chưa cung cấp'}
+      - Hạng chứng nhận OCOP: ${data.certification}
+      - Câu chuyện địa phương: ${data.localStory}
       
       Yêu cầu:
       1. Mô tả chi tiết (300-600 từ): 
          - Giới thiệu về nguồn gốc, truyền thống của địa phương ${data.location} gắn liền với sản phẩm.
-         - Lồng ghép khéo léo các yếu tố văn hóa Bắc Ninh (như dân ca Quan họ, làng nghề truyền thống, tinh thần hiếu học, sự tỉ mỉ của người thợ...) nếu phù hợp.
          - Phân tích sâu các điểm nổi bật: ${data.highlights}.
-         - Đề cập đến hạng chứng nhận OCOP: ${data.certification || 'Sản phẩm tiêu biểu'}.
-         - Sử dụng thông tin từ câu chuyện địa phương: ${data.localStory || 'Câu chuyện truyền thống'} để làm nội dung thêm phong phú và chân thực.
-         - Văn phong chuyên nghiệp, truyền cảm hứng, đậm chất văn hóa.
+         - Đề cập văn phong chuyên nghiệp, truyền cảm hứng.
       
       2. Nội dung chuẩn SEO:
          - Tiêu đề SEO (dưới 60 ký tự).
          - Meta Description (dưới 160 ký tự).
          - Danh sách 5-7 từ khóa chính.
-         - Cấu trúc các thẻ H1, H2, H3 gợi ý.
       
-      Lưu ý quan trọng: 
-      - Sử dụng tiếng Việt chuẩn, không sai chính tả.
-      - Tuyệt đối không sử dụng các thẻ HTML (như <p>, </p>, <br>, <div>...).
-      - Định dạng nội dung là văn bản thuần túy (Plain Text).
-      - Chia nội dung thành các đoạn văn rõ ràng, mỗi đoạn cách nhau bằng 2 lần xuống dòng để người dùng dễ dàng sao chép và sử dụng ngay.
-      - Tuyệt đối không bịa đặt thông tin kỹ thuật hay số liệu không có trong dữ liệu đầu vào.
-      - Chỉ sử dụng dữ liệu người dùng cung cấp và kiến thức văn hóa để làm giàu nội dung.
+      Chỉ xuất ra đúng 1 object JSON hợp lệ với 2 khóa:
+      {
+        "description": "Nội dung phần 1",
+        "seoContent": "Nội dung phần 2"
+      }
+      Tuyệt đối KHÔNG trả về markdown, không có text dư thừa ngoài định dạng JSON!
     `;
 
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            description: {
-              type: Type.STRING,
-              description: "Mô tả chi tiết sản phẩm (300-600 từ)",
-            },
-            seoContent: {
-              type: Type.STRING,
-              description: "Nội dung chuẩn SEO bao gồm tiêu đề, meta, từ khóa và cấu trúc heading",
-            },
-          },
-          required: ["description", "seoContent"],
-        },
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
       },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      })
     });
 
-    const resultStr = response.text || "{}";
-    const resultObj = JSON.parse(resultStr);
-    
-    return NextResponse.json(resultObj);
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`API Error: ${errText}`);
+    }
+
+    const groqData = await res.json();
+    const resultText = groqData.choices[0].message.content;
+    const parsed = JSON.parse(resultText);
+
+    return NextResponse.json(parsed);
   } catch (err: any) {
-    console.error("AI Generation Error", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Content Generation Error", err);
+    return NextResponse.json({ error: err.message || "Lỗi tạo nội dung." }, { status: 500 });
   }
 }

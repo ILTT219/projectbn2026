@@ -44,6 +44,14 @@ export default function ProductsPage() {
       }
     }
     load()
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const searchParam = params.get("search");
+      if (searchParam) {
+        setQuery(searchParam);
+      }
+    }
   }, [])
 
   const filtered = useMemo(() => {
