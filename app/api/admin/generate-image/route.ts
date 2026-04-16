@@ -4,12 +4,8 @@ import { GoogleGenAI } from '@google/genai';
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: "Chưa cấu hình GEMINI_API_KEY trong môi trường (.env.local)" }, { status: 400 });
-    }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
     
     const hasRealImages = data.realImagesBase64 && data.realImagesBase64.length > 0;
     const hasLogo = !!data.logoBase64;

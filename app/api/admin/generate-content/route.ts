@@ -4,12 +4,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: "Chưa cấu hình GEMINI_API_KEY" }, { status: 400 });
-    }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
     const model = "gemini-3.1-pro-preview";
     
     const prompt = `
