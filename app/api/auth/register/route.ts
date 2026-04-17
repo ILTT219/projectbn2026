@@ -85,17 +85,22 @@ export async function POST(req: NextRequest) {
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(password, salt)
 
+    const userData: any = { 
+      email, 
+      password: hashedPassword, 
+      role: validRole, 
+      is_approved: false
+    }
+
+    if (validRole === 'seller') {
+      userData.tax_id = tax_id
+      userData.business_registration = business_registration
+      userData.ocop_certificate = ocop_certificate
+    }
+
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from('users')
-      .insert([{ 
-        email, 
-        password: hashedPassword, 
-        role: validRole, 
-        is_approved: false,
-        tax_id: validRole === 'seller' ? tax_id : null,
-        business_registration: validRole === 'seller' ? business_registration : null,
-        ocop_certificate: validRole === 'seller' ? ocop_certificate : null
-      }])
+      .insert([userData])
       .select('id, role, is_approved')
       .single()
 
