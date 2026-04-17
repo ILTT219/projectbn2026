@@ -92,12 +92,6 @@ export async function POST(req: NextRequest) {
       is_approved: false
     }
 
-    if (validRole === 'seller') {
-      userData.tax_id = tax_id
-      userData.business_registration = business_registration
-      userData.ocop_certificate = ocop_certificate
-    }
-
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from('users')
       .insert([userData])
@@ -107,6 +101,21 @@ export async function POST(req: NextRequest) {
     if (insertError || !newUser) {
        console.error("Insert error:", insertError)
        return NextResponse.json({ error: 'Lỗi ghi chép vào sổ' }, { status: 500 })
+    }
+
+    if (validRole === 'seller') {
+      const { error: profileError } = await supabaseAdmin
+        .from('seller_profiles')
+        .insert([{
+          user_id: newUser.id,
+          tax_id: tax_id || null,
+          business_registration: business_registration || null,
+          ocop_certificate: ocop_certificate || null
+        }])
+        
+      if (profileError) {
+         console.error("Profile insert error:", profileError)
+      }
     }
 
     const secret = process.env.ADMIN_JWT_SECRET

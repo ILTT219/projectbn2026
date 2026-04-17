@@ -185,7 +185,9 @@ export default function AdminPage() {
            <div>
              {loadingUsers ? <p>Đang tải...</p> : pendingUsers.length === 0 ? <p className="text-slate-500">Tuyệt vời, không có ai đang chờ duyệt cả!</p> : (
                <div className="flex flex-col gap-4">
-                 {pendingUsers.map(u => (
+                 {pendingUsers.map(u => {
+                   const profile = Array.isArray(u.seller_profiles) ? u.seller_profiles[0] : (u.seller_profiles || {});
+                   return (
                    <div key={u.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
                      <div>
                        <p className="font-heading font-semibold text-slate-800">{u.email}</p>
@@ -194,9 +196,9 @@ export default function AdminPage() {
                        </span>
                        {u.role === 'seller' && (
                          <div className="mt-2 text-sm text-slate-600 space-y-1">
-                           <p><strong>MST:</strong> {u.tax_id || 'Chưa cập nhật'}</p>
-                           <p><strong>ĐKKD:</strong> {u.business_registration ? <a href={u.business_registration} target="_blank" className="text-blue-600 underline">Xem giấy tờ</a> : 'Chưa có'}</p>
-                           <p><strong>OCOP:</strong> {u.ocop_certificate ? <a href={u.ocop_certificate} target="_blank" className="text-blue-600 underline">Xem giấy tờ</a> : 'Chưa có'}</p>
+                           <p><strong>MST:</strong> {profile.tax_id || 'Chưa cập nhật'}</p>
+                           <p><strong>ĐKKD:</strong> {profile.business_registration ? <a href={profile.business_registration} target="_blank" className="text-blue-600 underline">Xem giấy tờ</a> : 'Chưa có'}</p>
+                           <p><strong>OCOP:</strong> {profile.ocop_certificate ? <a href={profile.ocop_certificate} target="_blank" className="text-blue-600 underline">Xem giấy tờ</a> : 'Chưa có'}</p>
                          </div>
                        )}
                      </div>
@@ -205,7 +207,7 @@ export default function AdminPage() {
                        <button onClick={() => handleRejectUser(u.id)} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors">Từ chối (Xoá)</button>
                      </div>
                    </div>
-                 ))}
+                 )})}
                </div>
              )}
            </div>

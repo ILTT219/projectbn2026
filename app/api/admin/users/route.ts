@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   try {
     let query = supabaseAdmin
       .from('users')
-      .select('id, email, role, created_at, tax_id, business_registration, ocop_certificate')
+      .select('id, email, role, created_at, seller_profiles(tax_id, business_registration, ocop_certificate)')
       .eq('is_approved', false)
       .order('created_at', { ascending: false })
 
