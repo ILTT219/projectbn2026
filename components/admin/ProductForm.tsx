@@ -69,6 +69,7 @@ export default function ProductForm({
   const [aiImageRequirements, setAiImageRequirements] = useState("")
   const [aiAspectRatio, setAiAspectRatio] = useState("1:1")
   const [aiImageLoading, setAiImageLoading] = useState(false)
+  const [aiLogoFile, setAiLogoFile] = useState<File | null>(null)
 
   const repFileInputRef = useRef<HTMLInputElement>(null)
   const prodFileInputRef = useRef<HTMLInputElement>(null)
@@ -194,15 +195,25 @@ export default function ProductForm({
     }
     setAiImageLoading(true)
     try {
+      const formData = new FormData()
+      formData.append('productName', name)
+      formData.append('location', origin || "Bắc Ninh")
+      formData.append('requirements', aiImageRequirements)
+      formData.append('features', description || "")
+      formData.append('aspectRatio', aiAspectRatio)
+      
+      if (aiLogoFile) {
+        formData.append('logoFile', aiLogoFile)
+      }
+      
+      const references = productFiles.slice(0, 2)
+      references.forEach((f, idx) => {
+        formData.append(`productFile${idx}`, f)
+      })
+
       const res = await fetch('/api/admin/generate-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productName: name,
-          location: origin || "Bắc Ninh",
-          requirements: aiImageRequirements,
-          aspectRatio: aiAspectRatio
-        })
+        body: formData
       })
       const data = await res.json()
       if (data.image) {
@@ -383,6 +394,12 @@ export default function ProductForm({
                 <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Yêu cầu đặc biệt</label>
                 <input type="text" className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" value={aiImageRequirements} onChange={e => setAiImageRequirements(e.target.value)} placeholder="Phông nền gỗ truyền thống..." />
               </div>
+            </div>
+            
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Thương hiệu / Logo nền trong suốt (Tùy chọn)</label>
+              <input type="file" accept="image/*" onChange={e => setAiLogoFile(e.target.files?.[0] || null)} className="w-full text-sm file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+              <p className="text-xs text-slate-500 mt-2 italic">* AI sẽ tự kết hợp Logo và Hình ảnh thật (nếu có ở mục Hình ảnh phụ bên dưới) để dựng lên Poster chuyên nghiệp!</p>
             </div>
             
             <div className="flex justify-end pt-2">
