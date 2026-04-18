@@ -76,7 +76,7 @@ export default function Home() {
 
       {/* Categories Section */}
       <section className="container-custom pt-24">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-end my-[10px] gap-4 px-[10px]">
           <div className="max-w-2xl">
             <h2 className="font-heading text-3xl md:text-4xl font-bold text-slate-900 mb-4">
               Danh Mục <span className="text-brand-green">Sản Phẩm</span>

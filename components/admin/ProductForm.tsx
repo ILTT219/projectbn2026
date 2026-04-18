@@ -56,20 +56,9 @@ export default function ProductForm({
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
-  // AI Content Form State
-  const [showAiContentForm, setShowAiContentForm] = useState(false)
-  const [aiSubject, setAiSubject] = useState("")
-  const [aiHighlights, setAiHighlights] = useState("")
-  const [aiCertification, setAiCertification] = useState("")
-  const [aiLocalStory, setAiLocalStory] = useState("")
-  const [aiLoading, setAiLoading] = useState(false)
-
-  // AI Image Form State
-  const [showAiImageForm, setShowAiImageForm] = useState(false)
-  const [aiImageRequirements, setAiImageRequirements] = useState("")
-  const [aiAspectRatio, setAiAspectRatio] = useState("1:1")
-  const [aiImageLoading, setAiImageLoading] = useState(false)
-  const [aiLogoFile, setAiLogoFile] = useState<File | null>(null)
+  // AI Content & Image iframe toggles
+  const [showAiContentIframe, setShowAiContentIframe] = useState(false)
+  const [showAiImageIframe, setShowAiImageIframe] = useState(false)
 
   const repFileInputRef = useRef<HTMLInputElement>(null)
   const prodFileInputRef = useRef<HTMLInputElement>(null)
@@ -150,87 +139,7 @@ export default function ProductForm({
     }
   }
 
-  async function handleGenerateAiContent() {
-    if (!name.trim() || !aiHighlights.trim()) {
-      alert("Ê, phải điền 'Tên' với 'Điểm nổi bật' thì AI nó mới biết đường chém gió nha!")
-      return
-    }
-    setAiLoading(true)
-    try {
-      const selectedCategory = categories.find(c => c.id.toString() === categoryId)?.name || ""
-      const res = await fetch('/api/admin/generate-content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productName: name,
-          subject: aiSubject,
-          location: origin || "Bắc Ninh",
-          productGroup: selectedCategory,
-          highlights: aiHighlights,
-          certification: aiCertification,
-          localStory: aiLocalStory
-        })
-      })
-      const data = await res.json()
-      if (data.description && data.seoContent) {
-        setDescription(`${data.description}\n\n=========================\n\nGỢI Ý SEO:\n${data.seoContent}`)
-        setShowAiContentForm(false)
-      } else if (data.description) {
-        setDescription(data.description)
-        setShowAiContentForm(false)
-      } else {
-        alert("Bút AI bị tắc mực: " + (data.error || "Không rõ"))
-      }
-    } catch (e: any) {
-      alert("Đứt nét vẽ: " + e.message)
-    } finally {
-      setAiLoading(false)
-    }
-  }
 
-  async function handleGenerateAiImage() {
-    if (!name.trim()) {
-      alert("Viết cái tên SP vô trước để AI nó còn biết vẽ cái gì nhen.")
-      return
-    }
-    setAiImageLoading(true)
-    try {
-      const formData = new FormData()
-      formData.append('productName', name)
-      formData.append('location', origin || "Bắc Ninh")
-      formData.append('requirements', aiImageRequirements)
-      formData.append('features', description || "")
-      formData.append('aspectRatio', aiAspectRatio)
-      
-      if (aiLogoFile) {
-        formData.append('logoFile', aiLogoFile)
-      }
-      
-      const references = productFiles.slice(0, 2)
-      references.forEach((f, idx) => {
-        formData.append(`productFile${idx}`, f)
-      })
-
-      const res = await fetch('/api/admin/generate-image', {
-        method: 'POST',
-        body: formData
-      })
-      const data = await res.json()
-      if (data.image) {
-        setShowAiImageForm(false)
-        const resObj = await fetch(data.image)
-        const blob = await resObj.blob()
-        const file = new File([blob], `ai-poster-${Date.now()}.png`, { type: blob.type })
-        setRepresentativeFile(file)
-      } else {
-        alert("Có lỗi từ phòng tranh AI: " + (data.error || "Không thể tạo ảnh"))
-      }
-    } catch (e: any) {
-      alert("Đứt nét vẽ: " + e.message)
-    } finally {
-      setAiImageLoading(false)
-    }
-  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full p-6 md:p-8 rounded-3xl bg-white shadow-xl shadow-slate-200/50 border border-slate-100">
@@ -301,53 +210,34 @@ export default function ProductForm({
           <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block">Mô tả sản phẩm</label>
           <button
             type="button"
-            onClick={() => setShowAiContentForm(!showAiContentForm)}
+            onClick={() => setShowAiContentIframe(!showAiContentIframe)}
             className="text-brand-green font-semibold hover:bg-brand-green/10 bg-slate-50 border border-slate-200 px-4 py-2 rounded-full transition-colors text-sm flex items-center gap-2"
           >
              ✨ Trợ lý Nội dung AI
           </button>
         </div>
         
-        {showAiContentForm && (
-          <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl mb-4 space-y-5">
-            <h4 className="text-slate-800 font-bold mb-2">Cung cấp thông tin để AI viết mô tả</h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Chủ thể OCOP (Tên HTX/DN)</label>
-                <input type="text" className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" value={aiSubject} onChange={e => setAiSubject(e.target.value)} placeholder="Ví dụ: HTX Nông nghiệp sạch..." />
+        {showAiContentIframe && (
+          <div className="mb-4 rounded-2xl overflow-hidden border border-slate-200 shadow-lg">
+            <div className="flex items-center justify-between bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-3">
+              <div className="flex items-center gap-2 text-white font-semibold text-sm">
+                <span>✨</span> AI Studio — Tạo Nội Dung Sản Phẩm
               </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Chứng nhận OCOP</label>
-                <select className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none cursor-pointer" value={aiCertification} onChange={e => setAiCertification(e.target.value)}>
-                  <option value="">Chưa rõ / Chưa có</option>
-                  <option value="3 sao">OCOP 3 sao</option>
-                  <option value="4 sao">OCOP 4 sao</option>
-                  <option value="5 sao">OCOP 5 sao</option>
-                </select>
-              </div>
-            </div>
-            
-            <div>
-              <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Giai thoại / Văn hóa địa phương</label>
-              <textarea className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none min-h-[60px] resize-y" value={aiLocalStory} onChange={e => setAiLocalStory(e.target.value)} placeholder="Gắn với truyền thuyết hoặc lịch sử địa phương..." />
-            </div>
-            
-            <div>
-              <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">* Điểm nổi bật</label>
-              <textarea className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none min-h-[80px] resize-y" value={aiHighlights} onChange={e => setAiHighlights(e.target.value)} placeholder="Quy trình, chất lượng, thành phần..." />
-            </div>
-            
-            <div className="flex justify-end pt-2">
-              <button 
-                type="button" 
-                onClick={handleGenerateAiContent}
-                disabled={aiLoading}
-                className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold py-2.5 px-6 rounded-xl transition-colors flex items-center gap-2 disabled:bg-slate-300"
+              <button
+                type="button"
+                onClick={() => setShowAiContentIframe(false)}
+                className="text-white/80 hover:text-white text-lg font-bold transition-colors"
               >
-                {aiLoading ? 'Đang phân tích...' : 'Bắt đầu tạo nội dung'}
+                ✕
               </button>
             </div>
+            <iframe
+              src="https://aistudio.google.com/apps/b359236e-1a52-4bff-b51f-5dad3e8ab2f0?showPreview=true&showAssistant=true"
+              className="w-full border-0"
+              style={{ height: '600px' }}
+              allow="clipboard-read; clipboard-write"
+              title="AI Content Generator"
+            />
           </div>
         )}
 
@@ -367,51 +257,34 @@ export default function ProductForm({
           <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block">Hình ảnh đại diện</label>
           <button
             type="button"
-            onClick={() => setShowAiImageForm(!showAiImageForm)}
+            onClick={() => setShowAiImageIframe(!showAiImageIframe)}
             className="text-blue-600 font-semibold hover:bg-blue-50 bg-slate-50 border border-slate-200 px-4 py-2 rounded-full transition-colors text-sm flex items-center gap-2"
           >
             🎨 Tạo Ảnh = AI
           </button>
         </div>
         
-        {showAiImageForm && (
-          <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl mb-4 space-y-5">
-            <h4 className="text-slate-800 font-bold mb-2">Thông số cho Poster Quảng Cáo</h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Tỉ lệ ảnh</label>
-                <div className="flex gap-4 p-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
-                    <input type="radio" value="1:1" checked={aiAspectRatio === "1:1"} onChange={e => setAiAspectRatio(e.target.value)} className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300" /> Vuông (1:1)
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
-                    <input type="radio" value="16:9" checked={aiAspectRatio === "16:9"} onChange={e => setAiAspectRatio(e.target.value)} className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300" /> Ngang (16:9)
-                  </label>
-                </div>
+        {showAiImageIframe && (
+          <div className="mb-4 rounded-2xl overflow-hidden border border-slate-200 shadow-lg">
+            <div className="flex items-center justify-between bg-gradient-to-r from-blue-500 to-indigo-600 px-5 py-3">
+              <div className="flex items-center gap-2 text-white font-semibold text-sm">
+                <span>🎨</span> AI Studio — Tạo Ảnh Sản Phẩm
               </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Yêu cầu đặc biệt</label>
-                <input type="text" className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" value={aiImageRequirements} onChange={e => setAiImageRequirements(e.target.value)} placeholder="Phông nền gỗ truyền thống..." />
-              </div>
-            </div>
-            
-            <div>
-              <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Thương hiệu / Logo nền trong suốt (Tùy chọn)</label>
-              <input type="file" accept="image/*" onChange={e => setAiLogoFile(e.target.files?.[0] || null)} className="w-full text-sm file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
-              <p className="text-xs text-slate-500 mt-2 italic">* AI sẽ tự kết hợp Logo và Hình ảnh thật (nếu có ở mục Hình ảnh phụ bên dưới) để dựng lên Poster chuyên nghiệp!</p>
-            </div>
-            
-            <div className="flex justify-end pt-2">
-              <button 
-                type="button" 
-                onClick={handleGenerateAiImage}
-                disabled={aiImageLoading}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-colors flex items-center gap-2 disabled:bg-slate-300"
+              <button
+                type="button"
+                onClick={() => setShowAiImageIframe(false)}
+                className="text-white/80 hover:text-white text-lg font-bold transition-colors"
               >
-                {aiImageLoading ? 'Đang xử lý hình ảnh...' : 'Bắt đầu tạo thiết kế'}
+                ✕
               </button>
             </div>
+            <iframe
+              src="https://aistudio.google.com/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0?showPreview=true&showAssistant=true"
+              className="w-full border-0"
+              style={{ height: '600px' }}
+              allow="clipboard-read; clipboard-write"
+              title="AI Image Generator"
+            />
           </div>
         )}
 
