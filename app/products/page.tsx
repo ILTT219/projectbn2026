@@ -56,26 +56,92 @@ export default function ProductsPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return productList.filter((p) => {
-      if (activeCategory && p.categoryId !== activeCategory) return false
-      if (!q) return true
-      return p.name.toLowerCase().includes(q)
+    
+    // Nếu không có từ khóa, chỉ lọc theo danh mục
+    if (!q) {
+      return productList.filter((p) => {
+        if (activeCategory && p.categoryId !== activeCategory) return false
+        return true
+      })
+    }
+
+    // Hàm tiện ích: Loại bỏ dấu tiếng Việt để tìm kiếm tương đối chuẩn hơn
+    const removeAccents = (str: string) => {
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+    };
+
+    const qNormalized = removeAccents(q)
+    const searchTerms = qNormalized.split(/\s+/)
+
+    const scoredProducts = productList.map(p => {
+      // Bỏ qua nếu khác danh mục đang được chọn
+      if (activeCategory && p.categoryId !== activeCategory) {
+        return { product: p, score: 0 }
+      }
+
+      const nameOriginal = p.name.toLowerCase()
+      const nameNormalized = removeAccents(nameOriginal)
+      let score = 0
+
+      // ƯU TIÊN 1: Khớp chính xác hoàn toàn có dấu
+      if (nameOriginal === q) {
+         score = 100
+      } 
+      // ƯU TIÊN 2: Khớp chính xác khi đã bỏ dấu
+      else if (nameNormalized === qNormalized) {
+         score = 90
+      }
+      // ƯU TIÊN 3: Chữ bắt đầu bằng cụm từ tìm kiếm
+      else if (nameNormalized.startsWith(qNormalized)) {
+         score = 80
+      }
+      // ƯU TIÊN 4: Chứa cụm từ khóa y hệt (liền nhau)
+      else if (nameNormalized.includes(qNormalized)) {
+         score = 60
+      } 
+      // ƯU TIÊN 5: Tìm kiếm tương đối (các từ rời rạc)
+      else {
+         let matchCount = 0
+         searchTerms.forEach(term => {
+             if (term.length > 0 && nameNormalized.includes(term)) {
+                 matchCount++
+             }
+         })
+         
+         // Có tất cả các từ (nhưng nằm rải rác)
+         if (searchTerms.length > 0 && matchCount === searchTerms.length) {
+            score = 40 
+         } 
+         // Chỉ khớp một vài từ (KẾT QUẢ TƯƠNG ĐỐI)
+         else if (matchCount > 0) {
+            score = matchCount * 10
+         }
+      }
+
+      return { product: p, score }
     })
+
+    // Lọc ra các sản phẩm có dính líu (score > 0) và sắp xếp điểm từ cao xuống thấp
+    return scoredProducts
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.product)
+
   }, [query, activeCategory, productList])
 
   return (
     <div className="container-custom py-10 min-h-screen">
       {/* Tiêu đề và nút hiển thị */}
-      <div className="flex flex-col md:flex-row items-center justify-between mb-10 mt-6 w-full">
+      <div className="flex flex-col md:flex-row items-center justify-between mb-[50px] mt-[44px] w-full gap-[10px] md:gap-0">
          <div className="hidden md:block md:w-1/3"></div> {/* Cân bằng bên trái */}
          
          <h1 className="font-heading text-4xl font-extrabold text-slate-800 uppercase tracking-tight drop-shadow-sm md:w-1/3 text-center">
            Khám Phá Sản Phẩm
          </h1>
          
-         <div className="flex justify-center md:justify-end md:w-1/3 mt-4 md:mt-0 w-full">
+         <div className="flex justify-center md:justify-end md:w-1/3 w-full">
            {/* Button thay đổi bố cục */}
-           <div className="flex bg-white rounded-lg p-1.5 shadow-sm border border-slate-200">
+           <div className="flex gap-1.5 bg-white rounded-lg p-1.5 shadow-sm border border-slate-200">
              <button 
                onClick={() => setLayout('list')}
                className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${layout === 'list' ? 'bg-brand-green text-white shadow-md' : 'text-slate-600 hover:text-brand-green hover:bg-slate-50'}`}
@@ -99,8 +165,8 @@ export default function ProductsPage() {
       </div>
 
       {/* Trình tìm kiếm & Lọc */}
-      <div className="w-full flex justify-center">
-        <div className="flex flex-col items-center justify-center gap-6 mb-12 bg-white p-8 rounded-2xl shadow-sm border border-slate-200 w-full max-w-4xl">
+      <div className="w-full flex justify-center mt-2">
+        <div className="flex flex-col items-center justify-center gap-4 mb-12 bg-white px-8 py-6 md:py-8 rounded-2xl shadow-sm border border-slate-200 w-full max-w-4xl min-h-[210px]">
           <input
           aria-label="Tìm kiếm sản phẩm"
           placeholder="🔍 Nhập để tìm kiếm sản phẩm OCOP mà bạn quan tâm..."

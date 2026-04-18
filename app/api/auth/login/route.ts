@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error || !data) {
+      console.error("Supabase fetch user error:", error);
       return NextResponse.json({ error: 'Người này không tồn tại trong Sổ' }, { status: 401 })
     }
 

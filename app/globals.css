@@ -21,7 +21,7 @@
 }
 
 body {
-  @apply text-slate-800 font-sans antialiased text-base bg-slate-50;
+  @apply text-slate-800 font-sans antialiased text-base bg-slate-50 leading-relaxed tracking-wide;
 }
 
 @layer components {
