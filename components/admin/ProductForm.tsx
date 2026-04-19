@@ -56,9 +56,8 @@ export default function ProductForm({
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
-  // AI Content & Image iframe toggles
-  const [showAiContentIframe, setShowAiContentIframe] = useState(false)
-  const [showAiImageIframe, setShowAiImageIframe] = useState(false)
+
+
 
   const repFileInputRef = useRef<HTMLInputElement>(null)
   const prodFileInputRef = useRef<HTMLInputElement>(null)
@@ -208,38 +207,15 @@ export default function ProductForm({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between mb-2">
           <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block">Mô tả sản phẩm</label>
-          <button
-            type="button"
-            onClick={() => setShowAiContentIframe(!showAiContentIframe)}
-            className="text-brand-green font-semibold hover:bg-brand-green/10 bg-slate-50 border border-slate-200 px-4 py-2 rounded-full transition-colors text-sm flex items-center gap-2"
+          <a
+            href="https://aistudio.google.com/apps/b359236e-1a52-4bff-b51f-5dad3e8ab2f0?showPreview=true&showAssistant=true"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-green font-semibold hover:bg-brand-green/10 bg-slate-50 border border-slate-200 px-4 py-2 rounded-full transition-colors text-sm flex items-center gap-2 no-underline"
           >
-             ✨ Trợ lý Nội dung AI
-          </button>
+             ✨ Trợ lý Nội dung AI ↗
+          </a>
         </div>
-        
-        {showAiContentIframe && (
-          <div className="mb-4 rounded-2xl overflow-hidden border border-slate-200 shadow-lg">
-            <div className="flex items-center justify-between bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-3">
-              <div className="flex items-center gap-2 text-white font-semibold text-sm">
-                <span>✨</span> AI Studio — Tạo Nội Dung Sản Phẩm
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAiContentIframe(false)}
-                className="text-white/80 hover:text-white text-lg font-bold transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-            <iframe
-              src="https://aistudio.google.com/apps/b359236e-1a52-4bff-b51f-5dad3e8ab2f0?showPreview=true&showAssistant=true"
-              className="w-full border-0"
-              style={{ height: '600px' }}
-              allow="clipboard-read; clipboard-write"
-              title="AI Content Generator"
-            />
-          </div>
-        )}
 
         <textarea
           placeholder="Mô tả chi tiết sản phẩm..."
@@ -255,38 +231,15 @@ export default function ProductForm({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between mb-2">
           <label className="text-sm font-bold uppercase tracking-wider text-slate-500 block">Hình ảnh đại diện</label>
-          <button
-            type="button"
-            onClick={() => setShowAiImageIframe(!showAiImageIframe)}
-            className="text-blue-600 font-semibold hover:bg-blue-50 bg-slate-50 border border-slate-200 px-4 py-2 rounded-full transition-colors text-sm flex items-center gap-2"
+          <a
+            href="https://aistudio.google.com/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0?showPreview=true&showAssistant=true"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 font-semibold hover:bg-blue-50 bg-slate-50 border border-slate-200 px-4 py-2 rounded-full transition-colors text-sm flex items-center gap-2 no-underline"
           >
-            🎨 Tạo Ảnh = AI
-          </button>
+            🎨 Tạo Ảnh = AI ↗
+          </a>
         </div>
-        
-        {showAiImageIframe && (
-          <div className="mb-4 rounded-2xl overflow-hidden border border-slate-200 shadow-lg">
-            <div className="flex items-center justify-between bg-gradient-to-r from-blue-500 to-indigo-600 px-5 py-3">
-              <div className="flex items-center gap-2 text-white font-semibold text-sm">
-                <span>🎨</span> AI Studio — Tạo Ảnh Sản Phẩm
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAiImageIframe(false)}
-                className="text-white/80 hover:text-white text-lg font-bold transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-            <iframe
-              src="https://aistudio.google.com/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0?showPreview=true&showAssistant=true"
-              className="w-full border-0"
-              style={{ height: '600px' }}
-              allow="clipboard-read; clipboard-write"
-              title="AI Image Generator"
-            />
-          </div>
-        )}
 
         <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2 py-1 focus-within:border-brand-green focus-within:ring-2 focus-within:ring-brand-green/20 overflow-hidden text-slate-600">
           <input
