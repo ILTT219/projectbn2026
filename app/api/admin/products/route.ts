@@ -57,24 +57,56 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === 'approve') {
-       const { error } = await supabaseAdmin
-          .from('products')
-          .update({ status: 'approved' })
-          .eq('id', targetProductId)
-          
-       if (error) throw error;
-       return NextResponse.json({ success: true, message: `Đã duyệt sản phẩm` })
+       // Kiểm tra trạng thái hiện tại
+       const { data: product } = await supabaseAdmin
+         .from('products')
+         .select('status')
+         .eq('id', targetProductId)
+         .single()
+
+       if (product?.status === 'pending_delete') {
+         // Nếu đang chờ duyệt xoá → thực hiện xoá thật
+         await supabaseAdmin.from('images').delete().eq('product_id', targetProductId)
+         const { error } = await supabaseAdmin
+           .from('products')
+           .delete()
+           .eq('id', targetProductId)
+         if (error) throw error;
+         return NextResponse.json({ success: true, message: 'Đã duyệt yêu cầu xoá và xoá sản phẩm' })
+       } else {
+         // Các trạng thái khác (pending_new, pending_edit) → duyệt thành approved
+         const { error } = await supabaseAdmin
+           .from('products')
+           .update({ status: 'approved' })
+           .eq('id', targetProductId)
+         if (error) throw error;
+         return NextResponse.json({ success: true, message: 'Đã duyệt sản phẩm' })
+       }
     } 
     else if (action === 'reject') {
-       // Nếu là từ chối một sản phẩm pending_new, ta có thể đổi trạng thái thành rejected hoặc xóa
-       // Ở đây ta xoá để dễ dọn rác
-       const { error } = await supabaseAdmin
-          .from('products')
-          .delete() // Tạm thời xoá sản phẩm bị từ chối
-          .eq('id', targetProductId)
-          
-       if (error) throw error;
-       return NextResponse.json({ success: true, message: 'Đã từ chối và xoá sản phẩm' })
+       // Nếu là từ chối pending_delete → khôi phục lại trạng thái approved
+       const { data: product } = await supabaseAdmin
+         .from('products')
+         .select('status')
+         .eq('id', targetProductId)
+         .single()
+
+       if (product?.status === 'pending_delete') {
+         const { error } = await supabaseAdmin
+           .from('products')
+           .update({ status: 'approved' })
+           .eq('id', targetProductId)
+         if (error) throw error;
+         return NextResponse.json({ success: true, message: 'Đã từ chối xoá, sản phẩm được giữ lại' })
+       } else {
+         // Từ chối sản phẩm mới/chỉnh sửa → xoá sản phẩm
+         const { error } = await supabaseAdmin
+           .from('products')
+           .delete()
+           .eq('id', targetProductId)
+         if (error) throw error;
+         return NextResponse.json({ success: true, message: 'Đã từ chối và xoá sản phẩm' })
+       }
     }
 
     return NextResponse.json({ error: 'Hành động không hợp lệ' }, { status: 400 })

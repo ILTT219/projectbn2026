@@ -16,6 +16,7 @@ export default function AdminPage() {
   // States cho Sản phẩm chờ duyệt
   const [pendingProducts, setPendingProducts] = useState<any[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+  const [previewProduct, setPreviewProduct] = useState<any | null>(null)
 
   // States cho Tạo QTV
   const [newAdminEmail, setNewAdminEmail] = useState('')
@@ -219,26 +220,108 @@ export default function AdminPage() {
              {loadingProducts ? <p>Đang tải...</p> : pendingProducts.length === 0 ? <p className="text-slate-500">Gian hàng sạch sẽ, chưa có sản phẩm nào cần duyệt.</p> : (
                <div className="flex flex-col gap-4">
                  {pendingProducts.map(p => (
-                   <div key={p.id} className="flex gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                     {p.img ? (
-                       <img src={p.img} alt={p.name} className="w-24 h-24 object-cover rounded-lg border" />
-                     ) : (
-                       <div className="w-24 h-24 bg-slate-200 flex items-center justify-center rounded-lg">No Image</div>
-                     )}
-                     <div className="flex-1">
-                       <div className="flex justify-between">
-                         <h3 className="font-heading font-bold text-lg">{p.name}</h3>
-                         <span className={`text-xs font-bold px-2 py-1 rounded h-fit ${p.status === 'pending_delete' ? 'bg-red-100 text-red-700' : p.status === 'pending_edit' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
-                           {p.status === 'pending_delete' ? 'Yêu cầu Xóa' : p.status === 'pending_edit' ? 'Đã chỉnh sửa' : 'Mới tạo đăng ký'}
-                         </span>
+                   <div key={p.id} className="flex flex-col bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                     <div className="flex gap-4 p-4">
+                       {p.img ? (
+                         <img src={p.img} alt={p.name} className="w-24 h-24 object-cover rounded-lg border" />
+                       ) : (
+                         <div className="w-24 h-24 bg-slate-200 flex items-center justify-center rounded-lg text-sm text-slate-400">No Image</div>
+                       )}
+                       <div className="flex-1">
+                         <div className="flex justify-between">
+                           <h3 className="font-heading font-bold text-lg">{p.name}</h3>
+                           <span className={`text-xs font-bold px-2 py-1 rounded h-fit ${p.status === 'pending_delete' ? 'bg-red-100 text-red-700' : p.status === 'pending_edit' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
+                             {p.status === 'pending_delete' ? '🗑️ Yêu cầu Xóa' : p.status === 'pending_edit' ? '✏️ Đã chỉnh sửa' : '🆕 Mới tạo đăng ký'}
+                           </span>
+                         </div>
+                         <p className="text-sm text-slate-500 mt-1">Sở hữu bởi: <span className="font-semibold">{p.users?.email || 'N/A'}</span></p>
+                         <p className="text-sm text-slate-600 mt-2 line-clamp-2">{p.description || 'Không có mô tả'}</p>
                        </div>
-                       <p className="text-sm text-slate-500 mt-1">Sở hữu bởi: <span className="font-semibold">{p.users?.email || 'N/A'}</span></p>
-                       <p className="text-sm text-slate-600 mt-2 line-clamp-2">{p.description || 'Không có mô tả'}</p>
+                       <div className="flex flex-col gap-2 justify-center pl-4 border-l border-slate-200">
+                         <button onClick={() => setPreviewProduct(previewProduct?.id === p.id ? null : p)} className="bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded transition-colors whitespace-nowrap text-sm">
+                           {previewProduct?.id === p.id ? '🔽 Đóng Preview' : '👁️ Xem trước'}
+                         </button>
+                         <button onClick={() => handleProductAction(p.id, 'approve')} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors whitespace-nowrap text-sm">
+                           {p.status === 'pending_delete' ? '✓ Đồng ý xoá' : '✓ Duyệt thay đổi'}
+                         </button>
+                         <button onClick={() => handleProductAction(p.id, 'reject')} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors whitespace-nowrap text-sm">
+                           {p.status === 'pending_delete' ? '✕ Giữ lại' : '✕ Từ chối'}
+                         </button>
+                       </div>
                      </div>
-                     <div className="flex flex-col gap-2 justify-center pl-4 border-l border-slate-200">
-                       <button onClick={() => handleProductAction(p.id, 'approve')} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors whitespace-nowrap">Duyệt thay đổi</button>
-                       <button onClick={() => handleProductAction(p.id, 'reject')} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors whitespace-nowrap">Từ chối thao tác</button>
-                     </div>
+
+                     {/* Preview Panel */}
+                     {previewProduct?.id === p.id && (
+                       <div className="border-t border-slate-200 bg-white p-6 animate-in slide-in-from-top duration-200">
+                         <h4 className="font-heading font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
+                           <span>🔍</span> Xem trước nội dung sản phẩm
+                         </h4>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           {/* Image Preview */}
+                           <div className="flex flex-col gap-3">
+                             {p.img ? (
+                               <div className="aspect-video rounded-lg overflow-hidden border border-slate-200 bg-slate-100">
+                                 <img src={p.img} alt={p.name} className="w-full h-full object-cover" />
+                               </div>
+                             ) : (
+                               <div className="aspect-video rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
+                                 Chưa có hình ảnh đại diện
+                               </div>
+                             )}
+                           </div>
+
+                           {/* Info Cards */}
+                           <div className="flex flex-col gap-3">
+                             <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                               <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Tên sản phẩm</p>
+                               <p className="text-slate-800 font-semibold">{p.name}</p>
+                             </div>
+                             <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                               <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Danh mục</p>
+                               <p className="text-slate-800 font-semibold">
+                                 {
+                                   {1: 'Lương thực', 2: 'Thực phẩm', 3: 'Dược liệu', 4: 'Thủ công mỹ nghệ', 5: 'Hàng tiêu dùng', 6: 'Đồ uống'}[p.category_id as number] || `Danh mục ${p.category_id}`
+                                 }
+                               </p>
+                             </div>
+                             {p.origin && (
+                               <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">📍 Xuất xứ</p>
+                                 <p className="text-slate-800 font-semibold">{p.origin}</p>
+                               </div>
+                             )}
+                             {p.contact_address && (
+                               <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">🏢 Thông tin liên hệ</p>
+                                 <p className="text-slate-800 font-semibold">{p.contact_address}</p>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+
+                         {/* Description */}
+                         {p.description && (
+                           <div className="mt-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                             <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">📝 Mô tả sản phẩm</p>
+                             <p className="text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">{p.description}</p>
+                           </div>
+                         )}
+
+                         {/* Public Preview Link */}
+                         {p.status !== 'pending_delete' && (
+                           <div className="mt-4 flex">
+                             <a
+                               href={`/products/${p.id}`}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="text-sm text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1 transition-colors"
+                             >
+                               🔗 Xem trang chi tiết sản phẩm (tab mới) ↗
+                             </a>
+                           </div>
+                         )}
+                       </div>
+                     )}
                    </div>
                  ))}
                </div>

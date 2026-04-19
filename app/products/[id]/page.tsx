@@ -224,13 +224,36 @@ export default function ProductDetail() {
                    )}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button className="ocop-btn flex-1 py-3.5 text-base shadow-lg shadow-brand-green/20">
-                    Liên hệ đặt hàng
-                  </button>
-                  <button className="ocop-btn-alt py-3.5 px-6 font-medium">
-                    Lưu danh sách
-                  </button>
+                <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl border border-emerald-200/60">
+                   <h3 className="font-heading font-bold text-slate-900 text-lg mb-4 flex items-center gap-2">
+                     <span className="text-xl">🌿</span> KẾT NỐI SẢN PHẨM OCOP
+                   </h3>
+                   <p className="text-slate-700 font-medium mb-4">Bạn quan tâm đến sản phẩm này?</p>
+                   <div className="space-y-3 mb-5">
+                     {product.contact_address && (
+                       <div className="flex items-start gap-2.5">
+                         <span className="text-base shrink-0 mt-0.5">📌</span>
+                         <div>
+                           <span className="text-sm font-semibold text-slate-500">Nhà sản xuất:</span>
+                           <p className="text-slate-800 font-medium">{product.contact_address}</p>
+                         </div>
+                       </div>
+                     )}
+                     {product.origin && (
+                       <div className="flex items-start gap-2.5">
+                         <span className="text-base shrink-0 mt-0.5">📍</span>
+                         <div>
+                           <span className="text-sm font-semibold text-slate-500">Địa chỉ:</span>
+                           <p className="text-slate-800 font-medium">{product.origin}</p>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                   <hr className="border-emerald-200/60 my-4" />
+                   <p className="text-sm text-slate-500 leading-relaxed">
+                     <span className="mr-1">ℹ️</span> Website chỉ mang tính <strong className="text-slate-700">quảng bá sản phẩm OCOP</strong>.
+                     Vui lòng liên hệ trực tiếp với nhà sản xuất để biết thêm thông tin.
+                   </p>
                 </div>
              </div>
            </div>
