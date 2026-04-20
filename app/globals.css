@@ -13,6 +13,10 @@
   --font-heading: 'Be Vietnam Pro', system-ui, sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* Reset cơ bản */
 * {
   box-sizing: border-box;
@@ -22,6 +26,8 @@
 
 body {
   @apply text-slate-800 font-sans antialiased text-base bg-slate-50 leading-relaxed tracking-wide;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 @layer components {

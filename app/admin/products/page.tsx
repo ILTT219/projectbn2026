@@ -60,11 +60,11 @@ export default function AdminProductsPage() {
         fetchProducts()
       } else {
         const body = await res.json().catch(() => ({}))
-        alert(body.error || 'Tẩy bị lỗi lầm =))')
+        alert(body.error || 'Xoá sản phẩm thất bại')
       }
     } catch (err) {
       console.error('delete error', err)
-      alert('Tẩy bị lỗi lầm =))')
+      alert('Xoá sản phẩm thất bại')
     }
   }
 
@@ -79,75 +79,78 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div className="container-custom py-12">
-      <h1 className="font-heading text-5xl font-bold text-slate-800 mb-8 border-b-4 border-slate-800 border-dashed pb-4 inline-block">Bàn Làm Việc - Kho Lưu Trữ</h1>
+    <div className="container-custom py-12 max-w-5xl">
+      <h1 className="font-heading text-4xl font-bold text-slate-800 mb-8 border-b-4 border-amber-500 pb-4 inline-block shadow-sm px-4 pt-2 bg-white rounded-t-xl">
+        Quản Lý Sản Phẩm Toàn Hệ Thống
+      </h1>
       
-      <div className="flex gap-6 mb-8 text-xl font-heading bg-amber-50 sketch-card p-4 mx-2">
-        <Link href="/admin" className="text-slate-800 hover:text-brand-green transition-transform hover:-translate-y-1 block">
-          <span>+</span> Sắp xếp đồ mới
+      <div className="flex gap-6 mb-8 text-lg font-heading bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+        <Link href="/admin" className="text-slate-600 hover:text-brand-green font-semibold transition-colors flex items-center gap-2">
+           <span>↪</span> Bàn Làm Việc
         </Link>
-        <Link href="/admin/stats" className="text-slate-800 hover:text-brand-green transition-transform hover:-translate-y-1 block">
-          <span>📊</span> Nhìn lén số liệu
+        <Link href="/admin/stats" className="text-slate-600 hover:text-brand-green font-semibold transition-colors flex items-center gap-2 border-l border-slate-200 pl-6">
+          <span>📊</span> Bảng Thống Kê
         </Link>
       </div>
 
       {editing && (
-        <div className="sketch-card bg-brand-gold-light/20 p-8 mb-12 relative rotate-1">
-          <h2 className="font-heading text-4xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-             <span>✏️</span> Đang sửa: <span className="underline decoration-wavy">{editing.name}</span>
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 mb-12 relative max-w-4xl mx-auto">
+          <h2 className="font-heading text-3xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+             <span>✏️</span> Đang sửa: <span className="text-brand-green">{editing.name}</span>
           </h2>
           <ProductForm
+            apiPrefix="/api/admin"
             initialProduct={editing}
-            submitLabel="✓ Lưu vết mực"
+            submitLabel="Lưu Cập Nhật"
             onSuccess={onFormSuccess}
           />
           <button
-            className="absolute top-4 right-6 text-slate-800 hover:text-red-600 font-heading text-2xl transition-transform hover:scale-125 hover:rotate-12"
+            className="absolute top-4 right-6 text-slate-400 hover:text-red-500 font-heading text-xl transition-colors"
             onClick={() => setEditing(null)}
           >
-            ✕ Gấp lại
+            ✕ Đóng
           </button>
         </div>
       )}
 
-      <div className="sketch-card bg-white p-2 md:p-6 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-2 md:p-6 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left font-sans">
             <thead>
-              <tr className="border-b-4 border-slate-800 text-xl font-heading text-slate-900 uppercase">
-                <th className="py-4 px-4 text-center">Mã</th>
-                <th className="py-4 px-4">Tên</th>
-                <th className="py-4 px-4">Giỏ hàng</th>
-                <th className="py-4 px-4 text-center">Người ngắm</th>
-                <th className="py-4 px-4 text-right">Làm gì?</th>
+              <tr className="border-b border-slate-200 bg-slate-50 text-sm tracking-wider text-slate-500 uppercase rounded-lg">
+                <th className="py-4 px-4 text-center rounded-l-lg">Mã</th>
+                <th className="py-4 px-4">Tên Sản Phẩm</th>
+                <th className="py-4 px-4">Danh Mục</th>
+                <th className="py-4 px-4 text-center">Lượt Xem</th>
+                <th className="py-4 px-4 text-right rounded-r-lg">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y-2 divide-slate-300 divide-dashed text-xl">
+            <tbody className="divide-y divide-slate-100 text-base">
               {products.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-100 transition-colors">
-                  <td className="py-4 px-4 text-center text-slate-500 font-bold font-serif">{p.id}</td>
+                <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-4 px-4 text-center text-slate-500 font-bold">{p.id}</td>
                   <td className="py-4 px-4 font-bold text-slate-800">{p.name}</td>
                   <td className="py-4 px-4 text-slate-700">
-                    <span className="border-2 border-slate-800 bg-slate-50 px-2 py-0.5" style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}>
+                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-sm font-semibold">
                       {categories.find((c) => c.id === p.category_id)?.name || p.category_id}
                     </span>
                   </td>
                   <td className="py-4 px-4 text-center">
-                    <div className="inline-flex items-center gap-1.5 text-slate-800 font-bold bg-amber-200 px-3 py-0.5 border-2 border-slate-800" style={{ borderRadius: '15px 255px 15px 225px / 255px 15px 225px 15px' }}>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    <div className="inline-flex items-center gap-1.5 text-slate-700 font-bold bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                      <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                       {p.view_count || 0}
                     </div>
                   </td>
-                  <td className="py-4 px-4 text-right space-x-4 font-heading text-2xl">
+                  <td className="py-4 px-4 text-right space-x-4">
                     <button 
                       onClick={() => startEdit(p)} 
-                      className="text-brand-green hover:text-brand-green-dark hover:-translate-y-1 transform transition-all inline-block"
+                      className="text-brand-green hover:text-brand-green-dark transition-colors font-medium"
                     >
                       Sửa
                     </button>
                     <button 
                       onClick={() => handleDelete(p.id)} 
-                      className="text-red-600 hover:text-red-800 hover:-translate-y-1 transform transition-all inline-block"
+                      className="text-red-500 hover:text-red-700 transition-colors font-medium"
                     >
                       Xóa
                     </button>
@@ -157,8 +160,8 @@ export default function AdminProductsPage() {
               
               {products.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-500 font-heading text-3xl">
-                    Quyển sổ trống trơn...
+                  <td colSpan={5} className="py-12 text-center text-slate-500 text-xl font-medium">
+                    Không có sản phẩm nào trong hệ thống.
                   </td>
                 </tr>
               )}

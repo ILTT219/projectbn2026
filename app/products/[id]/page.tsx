@@ -13,6 +13,7 @@ interface Product {
   img?: string
   origin?: string
   contact_address?: string
+  phone?: string
 }
 
 interface ProductImage {
@@ -26,6 +27,7 @@ export default function ProductDetail() {
   const [images, setImages] = useState<ProductImage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showContact, setShowContact] = useState(false)
 
   useEffect(() => {
     let productSub: any = null
@@ -228,32 +230,56 @@ export default function ProductDetail() {
                    <h3 className="font-heading font-bold text-slate-900 text-lg mb-4 flex items-center gap-2">
                      <span className="text-xl">🌿</span> KẾT NỐI SẢN PHẨM OCOP
                    </h3>
-                   <p className="text-slate-700 font-medium mb-4">Bạn quan tâm đến sản phẩm này?</p>
-                   <div className="space-y-3 mb-5">
-                     {product.contact_address && (
-                       <div className="flex items-start gap-2.5">
-                         <span className="text-base shrink-0 mt-0.5">📌</span>
-                         <div>
-                           <span className="text-sm font-semibold text-slate-500">Nhà sản xuất:</span>
-                           <p className="text-slate-800 font-medium">{product.contact_address}</p>
-                         </div>
+                   
+                   {!showContact ? (
+                     <div className="text-center py-4">
+                       <p className="text-slate-600 mb-4 text-sm">Nhấn nút bên dưới để xem thông tin liên hệ nhà cung cấp.</p>
+                       <button
+                         onClick={() => setShowContact(true)}
+                         className="bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mx-auto w-full md:w-auto"
+                       >
+                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                         Liên hệ đặt hàng
+                       </button>
+                     </div>
+                   ) : (
+                     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                       <p className="text-slate-700 font-medium mb-4">Thông tin liên hệ nhà cung cấp:</p>
+                       <div className="space-y-3 mb-5">
+                         {product.contact_address && (
+                           <div className="flex items-start gap-2.5">
+                             <span className="text-base shrink-0 mt-0.5">🏢</span>
+                             <div>
+                               <span className="text-sm font-semibold text-slate-500">Cơ sở sản xuất:</span>
+                               <p className="text-slate-800 font-medium">{product.contact_address}</p>
+                             </div>
+                           </div>
+                         )}
+                         {product.phone && (
+                           <div className="flex items-start gap-2.5">
+                             <span className="text-base shrink-0 mt-0.5">📞</span>
+                             <div>
+                               <span className="text-sm font-semibold text-slate-500">Điện thoại liên hệ:</span>
+                               <p className="text-slate-800 font-bold text-lg">{product.phone}</p>
+                             </div>
+                           </div>
+                         )}
+                         {product.origin && (
+                           <div className="flex items-start gap-2.5">
+                             <span className="text-base shrink-0 mt-0.5">📍</span>
+                             <div>
+                               <span className="text-sm font-semibold text-slate-500">Địa chỉ:</span>
+                               <p className="text-slate-800 font-medium">{product.origin}</p>
+                             </div>
+                           </div>
+                         )}
                        </div>
-                     )}
-                     {product.origin && (
-                       <div className="flex items-start gap-2.5">
-                         <span className="text-base shrink-0 mt-0.5">📍</span>
-                         <div>
-                           <span className="text-sm font-semibold text-slate-500">Địa chỉ:</span>
-                           <p className="text-slate-800 font-medium">{product.origin}</p>
-                         </div>
-                       </div>
-                     )}
-                   </div>
-                   <hr className="border-emerald-200/60 my-4" />
-                   <p className="text-sm text-slate-500 leading-relaxed">
-                     <span className="mr-1">ℹ️</span> Website chỉ mang tính <strong className="text-slate-700">quảng bá sản phẩm OCOP</strong>.
-                     Vui lòng liên hệ trực tiếp với nhà sản xuất để biết thêm thông tin.
-                   </p>
+                       <hr className="border-emerald-200/60 my-4" />
+                       <p className="text-sm text-brand-green leading-relaxed font-medium bg-emerald-100/50 p-3 rounded-lg">
+                         <span className="mr-1">ℹ️</span> Khi liên hệ, vui lòng báo bạn biết đến sản phẩm qua <strong>Cổng thông tin OCOP</strong> để được hỗ trợ tốt nhất!
+                       </p>
+                     </div>
+                   )}
                 </div>
              </div>
            </div>

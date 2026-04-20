@@ -30,8 +30,21 @@ ALTER TABLE "public"."products" ADD COLUMN IF NOT EXISTS "seller_id" integer REF
 -- Thêm status ('approved', 'pending_new', 'pending_edit', 'pending_delete', 'rejected')
 ALTER TABLE "public"."products" ADD COLUMN IF NOT EXISTS "status" VARCHAR(20) DEFAULT 'pending_new';
 
+-- Thêm trường rejection_reason
+ALTER TABLE "public"."products" ADD COLUMN IF NOT EXISTS "rejection_reason" TEXT;
+
 -- Cập nhật tất cả sản phẩm cũ hiện có (nếu có) thành đã duyệt 
 UPDATE "public"."products" SET "status" = 'approved' WHERE "status" = 'pending_new';
+
+-- Tạo bảng Notifications
+CREATE TABLE IF NOT EXISTS "public"."notifications" (
+    id SERIAL PRIMARY KEY,
+    seller_id integer REFERENCES "public"."users"("id") ON DELETE CASCADE,
+    message text NOT NULL,
+    is_read boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
 
 -- Bước 4: Tạo tài khoản Quản Trị Viên tối cao
 -- Email: t219t3@gmail.com - Mật khẩu: gtCo0408t (Password hash là bcrypt)

@@ -2,14 +2,18 @@
 
 import Link from "next/link"
 import ProductForm from "../../components/admin/ProductForm"
+import NotificationBell from "../../components/layout/NotificationBell"
 
 export default function SellerDashboard() {
   return (
     <div className="bg-slate-50 min-h-screen py-12">
       <div className="container-custom max-w-4xl">
-        <header className="mb-8">
-          <h1 className="font-heading text-3xl font-bold text-slate-900 mb-2">Bảng điều khiển Nhà cung cấp</h1>
-          <p className="text-slate-500 font-sans text-sm">Quản lý kho hàng và hồ sơ chuẩn OCOP của bạn</p>
+        <header className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="font-heading text-3xl font-bold text-slate-900 mb-2">Bảng điều khiển Nhà cung cấp</h1>
+            <p className="text-slate-500 font-sans text-sm">Quản lý kho hàng và hồ sơ chuẩn OCOP của bạn</p>
+          </div>
+          <NotificationBell />
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">

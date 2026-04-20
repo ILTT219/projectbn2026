@@ -95,13 +95,13 @@ export default function AdminPage() {
     } catch(e) {}
   }
 
-  const handleProductAction = async (id: number, action: 'approve' | 'reject') => {
-    if (action === 'reject' && !confirm("Từ chối sẽ xoá sản phẩm này. Tiếp tục?")) return;
+  const handleProductAction = async (id: number, action: 'approve' | 'reject', rejectionReason?: string) => {
+    if (action === 'reject' && !rejectionReason && !confirm("Từ chối sẽ xoá sản phẩm này. Tiếp tục?")) return;
     try {
        await fetch('/api/admin/products', {
          method: 'PATCH',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ targetProductId: id, action })
+         body: JSON.stringify({ targetProductId: id, action, rejectionReason })
        })
        fetchProducts()
     } catch(e) {}
@@ -244,7 +244,22 @@ export default function AdminPage() {
                          <button onClick={() => handleProductAction(p.id, 'approve')} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors whitespace-nowrap text-sm">
                            {p.status === 'pending_delete' ? '✓ Đồng ý xoá' : '✓ Duyệt thay đổi'}
                          </button>
-                         <button onClick={() => handleProductAction(p.id, 'reject')} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors whitespace-nowrap text-sm">
+                         <button onClick={() => {
+                           if (p.status === 'pending_delete') {
+                             if (confirm("Từ chối xoá sẽ giữ lại sản phẩm. Tiếp tục?")) {
+                               handleProductAction(p.id, 'reject')
+                             }
+                           } else {
+                             const reason = prompt("Nhập lý do từ chối để chủ thể biết và chỉnh sửa:")
+                             if (reason !== null) {
+                               if (reason.trim() === '') {
+                                 alert("Lý do từ chối không được để trống!")
+                               } else {
+                                 handleProductAction(p.id, 'reject', reason.trim())
+                               }
+                             }
+                           }
+                         }} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors whitespace-nowrap text-sm">
                            {p.status === 'pending_delete' ? '✕ Giữ lại' : '✕ Từ chối'}
                          </button>
                        </div>

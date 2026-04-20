@@ -50,62 +50,97 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const { targetProductId, action } = await req.json()
+    const { targetProductId, action, rejectionReason } = await req.json()
     // action: 'approve' | 'reject'
     if (!targetProductId || !action) {
        return NextResponse.json({ error: 'Thiếu ID sản phẩm hoặc hành động' }, { status: 400 })
     }
 
-    if (action === 'approve') {
-       // Kiểm tra trạng thái hiện tại
-       const { data: product } = await supabaseAdmin
-         .from('products')
-         .select('status')
-         .eq('id', targetProductId)
-         .single()
+    // Lấy thông tin sản phẩm để biết status hiện tại và seller
+    const { data: product } = await supabaseAdmin
+      .from('products')
+      .select('status, seller_id, name')
+      .eq('id', targetProductId)
+      .single()
 
-       if (product?.status === 'pending_delete') {
+    if (!product) {
+       return NextResponse.json({ error: 'Không tìm thấy sản phẩm' }, { status: 404 })
+    }
+
+    if (action === 'approve') {
+       if (product.status === 'pending_delete') {
          // Nếu đang chờ duyệt xoá → thực hiện xoá thật
          await supabaseAdmin.from('images').delete().eq('product_id', targetProductId)
          const { error } = await supabaseAdmin
            .from('products')
            .delete()
            .eq('id', targetProductId)
+         
          if (error) throw error;
+
+         // Thông báo cho seller
+         if (product.seller_id) {
+            await supabaseAdmin.from('notifications').insert({
+              seller_id: product.seller_id,
+              message: `Yêu cầu xoá sản phẩm "${product.name}" đã được hợp tác xã duyệt. Sản phẩm đã bị gỡ khỏi hệ thống.`
+            })
+         }
          return NextResponse.json({ success: true, message: 'Đã duyệt yêu cầu xoá và xoá sản phẩm' })
        } else {
          // Các trạng thái khác (pending_new, pending_edit) → duyệt thành approved
          const { error } = await supabaseAdmin
            .from('products')
-           .update({ status: 'approved' })
+           .update({ status: 'approved', rejection_reason: null })
            .eq('id', targetProductId)
          if (error) throw error;
+
+         // Thông báo cho seller
+         if (product.seller_id) {
+            await supabaseAdmin.from('notifications').insert({
+              seller_id: product.seller_id,
+              message: `Chúc mừng! Sản phẩm "${product.name}" của bạn đã được hiển thị trên hệ thống chuẩn OCOP.`
+            })
+         }
          return NextResponse.json({ success: true, message: 'Đã duyệt sản phẩm' })
        }
     } 
     else if (action === 'reject') {
-       // Nếu là từ chối pending_delete → khôi phục lại trạng thái approved
-       const { data: product } = await supabaseAdmin
-         .from('products')
-         .select('status')
-         .eq('id', targetProductId)
-         .single()
-
-       if (product?.status === 'pending_delete') {
+       if (product.status === 'pending_delete') {
+         // Từ chối xoá → trả lại approved
          const { error } = await supabaseAdmin
            .from('products')
-           .update({ status: 'approved' })
+           .update({ status: 'approved', rejection_reason: rejectionReason || 'Quản trị viên giữ lại sản phẩm này' })
            .eq('id', targetProductId)
          if (error) throw error;
+         
+         if (product.seller_id) {
+            await supabaseAdmin.from('notifications').insert({
+              seller_id: product.seller_id,
+              message: `Yêu cầu gỡ sản phẩm "${product.name}" bị từ chối. Lý do: ${rejectionReason || 'Được giữ lại bởi quản trị viên'}. Sản phẩm vẫn đang hiển thị.`
+            })
+         }
          return NextResponse.json({ success: true, message: 'Đã từ chối xoá, sản phẩm được giữ lại' })
        } else {
-         // Từ chối sản phẩm mới/chỉnh sửa → xoá sản phẩm
+         // Từ chối duyệt mới/sửa → CHUYỂN TRẠNG THÁI REJECTED, KO XOÁ
+         if (!rejectionReason) {
+            return NextResponse.json({ error: 'Cần nhập lý do từ chối để chủ thể biết chỉnh sửa' }, { status: 400 })
+         }
+
          const { error } = await supabaseAdmin
            .from('products')
-           .delete()
+           .update({ status: 'rejected', rejection_reason: rejectionReason })
            .eq('id', targetProductId)
+         
          if (error) throw error;
-         return NextResponse.json({ success: true, message: 'Đã từ chối và xoá sản phẩm' })
+         
+         if (product.seller_id) {
+            await supabaseAdmin.from('notifications').insert({
+              seller_id: product.seller_id,
+              message: `Sản phẩm "${product.name}" chưa được duyệt hiển thị. Lý do: ${rejectionReason}. Vui lòng chỉnh sửa lại theo yêu cầu.`
+            })
+         }
+
+         return NextResponse.json({ success: true, message: 'Đã từ chối sản phẩm. Lý do đã được gửi.' })
        }
     }
 
