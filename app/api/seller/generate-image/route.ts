@@ -88,16 +88,31 @@ export async function POST(req: Request) {
     ]);
 
     const basePrompt = referenceImagesBase64.length > 0
-      ? `Enhance and professionally retouch this product photo(s). Keep the product's original appearance but improve lighting, background, and presentation. Combine elements if multiple angles are provided, or choose the best one. ` +
-        `Vietnamese OCOP product: ${productNameEn}. ` +
-        `Origin: ${locationEn}. Features: ${highlightsEn}. Style: ${requirementsEn}. ` +
-        `High-end commercial photo, realistic, appealing, no text overlay, no watermark.`
-      : `Professional product photography, studio lighting, white clean background. ` +
-        `Vietnamese OCOP product: ${productNameEn}. ` +
-        `Origin: ${locationEn}. ` +
-        `Features: ${highlightsEn}. ` +
-        `Style: ${requirementsEn}. ` +
-        `High-end commercial photo, realistic, appealing, no text overlay, no watermark.`;
+      ? `CRITICAL INSTRUCTION: You are a high-end commercial product photographer. I am providing reference image(s) of a real product. 
+You MUST extract the exact product shown and place it in a new professional setting. 
+RULE 1: The product itself (shape, colors, text, branding, materials, details) MUST NOT BE ALTERED, MORPHED, OR REDESIGNED in any way. Keep it EXACTLY identical to the reference.
+RULE 2: The final image must be hyper-realistic, photographic, and indistinguishable from a real photograph. No cartoonish, painted, or overly stylized AI look.
+RULE 3: Do NOT add any fake text, fictional fonts, or watermarks.
+
+Context details for the environment:
+- Product Theme: Vietnamese OCOP product, ${productNameEn}.
+- Origin/Vibe: ${locationEn}.
+- Key Features: ${highlightsEn}.
+- Desired Style/Background: ${requirementsEn}.
+
+Create a stunning, photorealistic studio photography shot.`
+      : `CRITICAL INSTRUCTION: You are a high-end commercial product photographer. 
+Create a hyper-realistic, photorealistic product photography shot. It must look identical to a real photograph taken with a DSLR camera. No painting, no 3D render look, no cartoonish styles.
+RULE 1: Do NOT add any fictional text, weird fonts, or watermarks. 
+RULE 2: Create a minimal, clean, professional composition.
+
+Context details:
+- Product Theme: Vietnamese OCOP product, ${productNameEn}.
+- Origin/Vibe: ${locationEn}.
+- Key Features: ${highlightsEn}.
+- Desired Style/Background: ${requirementsEn}.
+
+Studio setup, perfect lighting, 8k resolution, highly detailed realism.`;
 
     // If reference image provided, try Gemini first (supports image input)
     if (referenceImagesBase64.length > 0 && process.env.GEMINI_API_KEY) {
