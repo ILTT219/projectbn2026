@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
     const origin = formData.get('origin')?.toString() || ''
     const description = formData.get('description')?.toString() || ''
     const contact_address = formData.get('contact_address')?.toString() || ''
+    const phone = formData.get('phone')?.toString() || ''
 
     if (!name || !category_id) {
       return NextResponse.json({ error: 'Name and category are required' }, { status: 400 })
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
           origin: origin || null,
           description: description || null,
           contact_address: contact_address || null,
+          phone: phone || null,
           seller_id: sellerId
         },
       ])

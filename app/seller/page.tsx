@@ -27,15 +27,15 @@ export default function SellerDashboard() {
             </div>
           </Link>
 
-          <div className="bg-gradient-to-br from-brand-gold-light/20 to-brand-gold/10 p-6 rounded-2xl border border-brand-gold-light/30 shadow-sm flex items-start gap-4 opacity-75 grayscale sepia-0 cursor-not-allowed">
-            <div className="w-12 h-12 bg-white text-slate-400 rounded-xl flex items-center justify-center shrink-0">
+          <Link href="/seller/stats" className="bg-white p-6 rounded-2xl border border-amber-200/40 shadow-sm hover:shadow-amber-100/30 hover:border-amber-400 transition-all group flex items-start gap-4">
+            <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-amber-500 group-hover:text-white transition-colors">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             </div>
             <div>
-              <h3 className="font-heading font-semibold text-slate-700 text-lg">Báo cáo doanh số</h3>
-              <p className="font-sans text-sm text-slate-500 mt-1">Tính năng đang cập nhật...</p>
+              <h3 className="font-heading font-semibold text-slate-800 text-lg group-hover:text-amber-600 transition-colors">Báo cáo lượt xem</h3>
+              <p className="font-sans text-sm text-slate-500 mt-1">Thống kê truy cập sản phẩm</p>
             </div>
-          </div>
+          </Link>
         </div>
 
         <div className="mb-4 mt-8 flex items-center gap-3">

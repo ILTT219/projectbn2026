@@ -8,12 +8,13 @@ const supabase = createClient(
 )
 
 async function checkAuth(req: NextRequest) {
-  const token = req.cookies.get('user_token')?.value
+  const token = req.cookies.get('admin_token')?.value
   const secret = process.env.ADMIN_JWT_SECRET
   if (!token || !secret) return null
   try {
     const decoded: any = jwt.verify(token, secret)
-    return decoded
+    if (decoded.role === 'seller' || decoded.role === 'admin') return decoded
+    return null
   } catch (e) {
     return null
   }
@@ -21,7 +22,7 @@ async function checkAuth(req: NextRequest) {
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await checkAuth(req)
-  if (!user || user.role !== 'seller') {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

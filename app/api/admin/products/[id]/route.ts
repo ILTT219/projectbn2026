@@ -74,6 +74,7 @@ export async function PUT(
     const origin = formData.get('origin')?.toString() || ''
     const description = formData.get('description')?.toString() || ''
     const contact_address = formData.get('contact_address')?.toString() || ''
+    const phone = formData.get('phone')?.toString() || ''
 
     if (!name || !category_id) {
       return NextResponse.json({ error: 'Name and category are required' }, { status: 400 })
@@ -88,6 +89,7 @@ export async function PUT(
         origin: origin || null,
         description: description || null,
         contact_address: contact_address || null,
+        phone: phone || null,
       })
       .eq('id', id)
 
@@ -119,9 +121,6 @@ export async function PUT(
     // handle additional gallery images on update as well
     const images = formData.getAll('images') as File[]
     if (images.length > 0) {
-      // delete existing gallery rows so the product detail shows only the new set
-      await supabaseAdmin.from('images').delete().eq('product_id', id)
-
       const rowsToInsert: { product_id: number; image_url: string; img_id: number }[] = []
       const generateImgId = () => {
         return Math.floor(Date.now() * 1000 + Math.random() * 1000)

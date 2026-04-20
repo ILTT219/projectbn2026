@@ -40,26 +40,94 @@ async function translateToEnglish(vietnameseText: string): Promise<string> {
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
+    const contentType = req.headers.get('content-type') || '';
+    
+    let productName = '';
+    let highlights = '';
+    let requirements = '';
+    let location = '';
+    let aspectRatio = '1:1';
+    let referenceImageBase64 = '';
+
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData with reference image
+      const formData = await req.formData();
+      productName = formData.get('productName')?.toString() || '';
+      highlights = formData.get('highlights')?.toString() || '';
+      requirements = formData.get('requirements')?.toString() || '';
+      location = formData.get('location')?.toString() || '';
+      aspectRatio = formData.get('aspectRatio')?.toString() || '1:1';
+      
+      const refImage = formData.get('referenceImage') as File | null;
+      if (refImage && refImage.size) {
+        const arrayBuffer = await refImage.arrayBuffer();
+        referenceImageBase64 = Buffer.from(arrayBuffer).toString('base64');
+      }
+    } else {
+      // Handle JSON body
+      const data = await req.json();
+      productName = data.productName || '';
+      highlights = data.highlights || '';
+      requirements = data.requirements || '';
+      location = data.location || '';
+      aspectRatio = data.aspectRatio || '1:1';
+    }
 
     // Dịch các trường tiếng Việt sang tiếng Anh cho image model
     const [productNameEn, highlightsEn, requirementsEn, locationEn] = await Promise.all([
-      translateToEnglish(data.productName || ''),
-      translateToEnglish(data.highlights || 'Sản phẩm chất lượng cao'),
-      translateToEnglish(data.requirements || 'Chuyên nghiệp, tối giản, màu sáng'),
-      translateToEnglish(data.location || 'Bắc Ninh, Vietnam'),
+      translateToEnglish(productName),
+      translateToEnglish(highlights || 'Sản phẩm chất lượng cao'),
+      translateToEnglish(requirements || 'Chuyên nghiệp, tối giản, màu sáng'),
+      translateToEnglish(location || 'Bắc Ninh, Vietnam'),
     ]);
-    
-    const promptText = 
-      `Professional product photography, studio lighting, white clean background. ` +
-      `Vietnamese OCOP product: ${productNameEn}. ` +
-      `Origin: ${locationEn}. ` +
-      `Features: ${highlightsEn}. ` +
-      `Style: ${requirementsEn}. ` +
-      `High-end commercial photo, realistic, appealing, no text overlay, no watermark.`;
 
-    // Pollinations.ai — free image generation
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&seed=${Date.now()}&nologo=true`;
+    const basePrompt = referenceImageBase64
+      ? `Enhance and professionally retouch this product photo. Keep the product's original appearance but improve lighting, background, and presentation. ` +
+        `Vietnamese OCOP product: ${productNameEn}. ` +
+        `Origin: ${locationEn}. Features: ${highlightsEn}. Style: ${requirementsEn}. ` +
+        `High-end commercial photo, realistic, appealing, no text overlay, no watermark.`
+      : `Professional product photography, studio lighting, white clean background. ` +
+        `Vietnamese OCOP product: ${productNameEn}. ` +
+        `Origin: ${locationEn}. ` +
+        `Features: ${highlightsEn}. ` +
+        `Style: ${requirementsEn}. ` +
+        `High-end commercial photo, realistic, appealing, no text overlay, no watermark.`;
+
+    // If reference image provided, try Gemini first (supports image input)
+    if (referenceImageBase64 && process.env.GEMINI_API_KEY) {
+      try {
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-preview-05-20',
+          contents: { 
+            parts: [
+              { text: basePrompt },
+              { inlineData: { mimeType: 'image/jpeg', data: referenceImageBase64 } }
+            ] 
+          },
+          config: { responseModalities: ['TEXT', 'IMAGE'] },
+        });
+
+        if (response.candidates && response.candidates.length > 0) {
+          const parts = response.candidates[0]?.content?.parts || [];
+          for (const part of parts) {
+            if (part.inlineData) {
+              return NextResponse.json({ 
+                image: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}` 
+              });
+            }
+          }
+        }
+      } catch (geminiErr: any) {
+        console.log('Gemini with reference image failed:', geminiErr.message);
+      }
+    }
+
+    // Pollinations.ai — free image generation (no reference image support)
+    const dimensions = aspectRatio === '16:9' ? 'width=1280&height=720' : 'width=1024&height=1024';
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(basePrompt)}?${dimensions}&seed=${Date.now()}&nologo=true`;
 
     try {
       const res = await fetch(pollinationsUrl, {
@@ -69,23 +137,23 @@ export async function POST(req: Request) {
       if (res.ok) {
         const arrayBuffer = await res.arrayBuffer();
         const base64 = Buffer.from(arrayBuffer).toString('base64');
-        const contentType = res.headers.get('content-type') || 'image/jpeg';
-        return NextResponse.json({ image: `data:${contentType};base64,${base64}` });
+        const ct = res.headers.get('content-type') || 'image/jpeg';
+        return NextResponse.json({ image: `data:${ct};base64,${base64}` });
       }
     } catch (pollErr: any) {
       console.log('Pollinations error:', pollErr.message);
     }
 
-    // Fallback: try Gemini
+    // Fallback: try Gemini without reference image
     if (process.env.GEMINI_API_KEY) {
       try {
         const { GoogleGenAI } = await import('@google/genai');
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: { parts: [{ text: promptText }] },
-          config: { imageConfig: { aspectRatio: '1:1' } },
+          model: 'gemini-2.5-flash-preview-05-20',
+          contents: { parts: [{ text: basePrompt }] },
+          config: { responseModalities: ['TEXT', 'IMAGE'] },
         });
 
         if (response.candidates && response.candidates.length > 0) {

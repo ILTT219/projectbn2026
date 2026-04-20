@@ -44,7 +44,7 @@ export default function ProductDetail() {
 
         const { data: productData, error: prodErr } = await supabase
           .from("products")
-          .select("id, name, description, img, origin, contact_address")
+          .select("id, name, description, img, origin, contact_address, phone")
           .eq("id", id)
           .single()
 

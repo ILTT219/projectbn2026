@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
 
 export interface Product {
   id?: number
@@ -51,6 +52,7 @@ export default function ProductForm({
   const [description, setDescription] = useState(initialProduct?.description || "")
   const [representativeFile, setRepresentativeFile] = useState<File | null>(null)
   const [productFiles, setProductFiles] = useState<File[]>([])
+  const [existingImages, setExistingImages] = useState<{ id?: number, image_url: string }[]>([])
   const [contactAddress, setContactAddress] = useState(
     initialProduct?.contact_address || ""
   )
@@ -73,6 +75,8 @@ export default function ProductForm({
   const [aiRequirements, setAiRequirements] = useState("")
   const [aiImageSize, setAiImageSize] = useState<"1:1" | "16:9">("1:1")
   const [generatedImgBase64, setGeneratedImgBase64] = useState("")
+  const [aiReferenceFile, setAiReferenceFile] = useState<File | null>(null)
+  const aiRefInputRef = useRef<HTMLInputElement>(null)
 
   const repFileInputRef = useRef<HTMLInputElement>(null)
   const prodFileInputRef = useRef<HTMLInputElement>(null)
@@ -90,6 +94,16 @@ export default function ProductForm({
       setRepresentativeFile(null)
       setProductFiles([])
       setMessage("")
+
+      if (initialProduct.id) {
+        supabase
+          .from('images')
+          .select('id, image_url')
+          .eq('product_id', initialProduct.id)
+          .then(({ data }) => setExistingImages(data || []))
+      }
+    } else {
+      setExistingImages([])
     }
   }, [initialProduct])
 
@@ -100,6 +114,8 @@ export default function ProductForm({
 
   const openImageModal = () => {
     setGeneratedImgBase64("")
+    setAiReferenceFile(null)
+    if (aiRefInputRef.current) aiRefInputRef.current.value = ""
     setShowImageModal(true)
   }
 
@@ -154,17 +170,33 @@ export default function ProductForm({
     setAiGenerating(true)
     setGeneratedImgBase64("")
     try {
-      const res = await fetch(`${apiPrefix}/generate-image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productName: name,
-          highlights: aiHighlights || name,
-          requirements: aiRequirements,
-          location: origin,
-          aspectRatio: aiImageSize
+      let res: Response
+      if (aiReferenceFile) {
+        // Send as FormData with reference image
+        const formData = new FormData()
+        formData.append('productName', name)
+        formData.append('highlights', aiHighlights || name)
+        formData.append('requirements', aiRequirements)
+        formData.append('location', origin)
+        formData.append('aspectRatio', aiImageSize)
+        formData.append('referenceImage', aiReferenceFile)
+        res = await fetch(`${apiPrefix}/generate-image`, {
+          method: 'POST',
+          body: formData
         })
-      })
+      } else {
+        res = await fetch(`${apiPrefix}/generate-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productName: name,
+            highlights: aiHighlights || name,
+            requirements: aiRequirements,
+            location: origin,
+            aspectRatio: aiImageSize
+          })
+        })
+      }
       const data = await res.json()
       if (data.image) {
         setGeneratedImgBase64(data.image)
@@ -405,10 +437,23 @@ export default function ProductForm({
             className="w-full text-sm file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
           />
         </div>
+
+        {existingImages.length > 0 && (
+          <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div className="font-semibold text-sm text-slate-700 mb-3 block">Hình ảnh phụ hiện tại ({existingImages.length}):</div>
+            <div className="flex gap-3 flex-wrap">
+              {existingImages.map((img, idx) => (
+                <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                  <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         {productFiles.length > 0 && (
           <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
-            <div className="font-semibold text-sm text-slate-700 mb-3 block">Đã chọn {productFiles.length} hình ảnh:</div>
+            <div className="font-semibold text-sm text-slate-700 mb-3 block">Đã chọn thêm {productFiles.length} hình ảnh mới:</div>
             <div className="flex gap-2 flex-wrap text-xs">
               {productFiles.map((file, idx) => (
                 <span key={idx} className="bg-white px-3 py-1.5 border border-slate-200 rounded-full text-slate-600 shadow-sm">
@@ -602,6 +647,29 @@ export default function ProductForm({
                 <div>
                   <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1"><span className="text-brand-green">✦</span> Yêu cầu hình ảnh</label>
                   <textarea placeholder="VD: Phong cách tối giản, nền gỗ, ánh sáng ấm áp..." value={aiRequirements} onChange={e => setAiRequirements(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-slate-800 text-sm min-h-[60px] resize-y" />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center justify-between">
+                    <span className="flex items-center gap-1"><span className="text-brand-green">✦</span> Ảnh tư liệu (Không bắt buộc)</span>
+                    {aiReferenceFile && (
+                      <button type="button" onClick={() => { setAiReferenceFile(null); if (aiRefInputRef.current) aiRefInputRef.current.value = ""; }} className="text-[10px] text-red-500 hover:underline">Xoá ảnh</button>
+                    )}
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      ref={aiRefInputRef}
+                      onChange={e => setAiReferenceFile(e.target.files?.[0] || null)}
+                      className="hidden" 
+                    />
+                    <button type="button" onClick={() => aiRefInputRef.current?.click()} className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 border-dashed text-slate-600 font-semibold py-2.5 px-4 rounded-lg transition-all text-sm flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                      {aiReferenceFile ? "Đã chọn 1 ảnh gốc" : "Tải lên ảnh gốc / phác thảo..."}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">AI sẽ dựa vào ảnh này để chỉnh sửa, làm đẹp mà không thay đổi cấu trúc gốc.</p>
                 </div>
 
                 <div className="flex gap-3 text-xs">
