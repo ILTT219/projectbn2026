@@ -7,7 +7,7 @@ export default function AdminLayout({
     <div className="flex min-h-screen bg-slate-50 font-sans">
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-20">
         <div className="h-16 flex items-center px-6 border-b border-slate-800">
-          <span className="w-8 h-8 rounded bg-brand-green flex items-center justify-center text-white font-heading font-bold mr-3 shadow-md">O</span>
+          <img src="https://raw.githubusercontent.com/ILTT219/Image-storage/c674f7253196749a55fbdd18d6b540a4cdc5e1f2/12.png" alt="OCOP Logo" className="w-8 h-8 object-cover rounded mr-3 shadow-md bg-white p-0.5" />
           <h2 className="font-heading font-bold text-lg text-white tracking-wide">Quản trị OCOP</h2>
         </div>
         

@@ -142,45 +142,49 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container-custom py-12 max-w-5xl">
-      <h1 className="font-heading text-4xl font-bold text-slate-800 mb-8 border-b-4 border-amber-500 pb-4 inline-block shadow-sm px-4 pt-2 bg-white rounded-t-xl">
-        ⚖️ Bàn Kiểm Duyệt Tối Cao
-      </h1>
+    <div className="max-w-6xl mx-auto pb-12">
+      <div className="mb-8">
+        <h1 className="font-heading text-3xl md:text-3xl font-bold text-slate-900 mb-2">
+          Bảng điều khiển Quản trị
+        </h1>
+        <p className="text-slate-500 font-sans text-sm">Kiểm duyệt sản phẩm, người dùng và quản lý hệ thống</p>
+      </div>
       
-      <div className="flex gap-4 mb-6 border-b border-slate-200 flex-wrap">
-        <button 
-           className={`pb-3 px-4 font-heading font-semibold text-lg transition-colors ${activeTab === 'users' ? 'border-b-4 border-amber-500 text-amber-600' : 'text-slate-500 hover:text-slate-800'}`}
-           onClick={() => setActiveTab('users')}
-        >
-          Người dùng chờ duyệt ({pendingUsers.length})
-        </button>
-        <button 
-           className={`pb-3 px-4 font-heading font-semibold text-lg transition-colors ${activeTab === 'products' ? 'border-b-4 border-amber-500 text-amber-600' : 'text-slate-500 hover:text-slate-800'}`}
-           onClick={() => setActiveTab('products')}
-        >
-          Sản phẩm chờ duyệt ({pendingProducts.length})
-        </button>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-slate-100 bg-slate-50/50 p-2 gap-2">
+          <button 
+             className={`px-5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${activeTab === 'users' ? 'bg-white text-brand-green shadow border border-slate-100' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+             onClick={() => setActiveTab('users')}
+          >
+            Người dùng chờ duyệt ({pendingUsers.length})
+          </button>
+          <button 
+             className={`px-5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${activeTab === 'products' ? 'bg-white text-brand-green shadow border border-slate-100' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+             onClick={() => setActiveTab('products')}
+          >
+            Sản phẩm chờ duyệt ({pendingProducts.length})
+          </button>
 
         {/* Chỉ Owner mới thấy các tab quản lý QTV */}
         {isOwner && (
           <>
             <button 
-               className={`pb-3 px-4 font-heading font-semibold text-lg transition-colors ${activeTab === 'admin' ? 'border-b-4 border-amber-500 text-amber-600' : 'text-slate-500 hover:text-slate-800'}`}
+               className={`px-5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${activeTab === 'admin' ? 'bg-white text-brand-green shadow border border-slate-100' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
                onClick={() => setActiveTab('admin')}
             >
               🔑 Tạo QTV Mới
             </button>
             <button 
-               className={`pb-3 px-4 font-heading font-semibold text-lg transition-colors ${activeTab === 'manage_admins' ? 'border-b-4 border-amber-500 text-amber-600' : 'text-slate-500 hover:text-slate-800'}`}
+               className={`px-5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${activeTab === 'manage_admins' ? 'bg-white text-brand-green shadow border border-slate-100' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
                onClick={() => setActiveTab('manage_admins')}
             >
               👑 Quản lý QTV
             </button>
           </>
         )}
-      </div>
+        </div>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 min-h-[50vh]">
+        <div className="p-6 md:p-8 bg-slate-50 min-h-[500px]">
         {/* TAB USERS */}
         {activeTab === 'users' && (
            <div>
@@ -413,6 +417,7 @@ export default function AdminPage() {
              )}
            </div>
         )}
+        </div>
       </div>
     </div>
   )

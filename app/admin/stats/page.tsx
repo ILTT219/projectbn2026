@@ -59,17 +59,20 @@ export default function AdminStatsPage() {
   }, [])
 
   return (
-    <div className="container-custom py-12 max-w-5xl">
-      <h1 className="font-heading text-4xl font-bold text-slate-800 mb-8 border-b-4 border-amber-500 pb-4 inline-block shadow-sm px-4 pt-2 bg-white rounded-t-xl">
-         Bảng Xếp Hạng 🏆
-      </h1>
+    <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <header className="mb-6">
+        <h1 className="font-heading text-3xl md:text-3xl font-bold text-slate-900 mb-2">
+          Thống kê truy cập 🏆
+        </h1>
+        <p className="text-slate-500 font-sans text-sm">Xem và theo dõi bảng xếp hạng sản phẩm OCOP được quan tâm nhiều nhất</p>
+      </header>
       
-      <div className="flex gap-6 mb-12 text-lg font-heading bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-        <Link href="/admin" className="text-slate-600 hover:text-brand-green font-semibold transition-colors flex items-center gap-2">
-          <span>↪</span> Về Bàn Làm Việc
+      <div className="flex flex-wrap gap-4 mb-8">
+        <Link href="/admin" className="bg-white border text-sm border-slate-200 text-slate-600 hover:text-brand-green hover:border-brand-green/30 font-semibold transition-all flex items-center gap-2 py-2.5 px-5 rounded-xl shadow-sm">
+          <span>↩</span> Quay lại Tổng quan
         </Link>
-        <Link href="/admin/products" className="text-slate-600 hover:text-brand-green font-semibold transition-colors flex items-center gap-2 border-l border-slate-200 pl-6">
-          <span>📦</span> Danh Sách Sản Phẩm
+        <Link href="/admin/products" className="bg-white border text-sm border-slate-200 text-slate-600 hover:text-brand-green hover:border-brand-green/30 font-semibold transition-all flex items-center gap-2 py-2.5 px-5 rounded-xl shadow-sm">
+          <span>📦</span> Hệ sinh thái Sản Phẩm
         </Link>
       </div>
 

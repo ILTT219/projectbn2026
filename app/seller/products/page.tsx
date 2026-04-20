@@ -53,15 +53,18 @@ export default function SellerProductsPage() {
   }
 
   return (
-    <div className="container-custom py-12">
-      <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-200">
-        <h1 className="font-heading text-4xl font-bold text-slate-900">Kho Hàng Của Xưởng</h1>
+    <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <header className="mb-6 flex justify-between items-start">
+        <div>
+          <h1 className="font-heading text-3xl md:text-3xl font-bold text-slate-900 mb-2">Kho hàng của tôi</h1>
+          <p className="text-slate-500 font-sans text-sm">Quản lý và cập nhật các sản phẩm đang niêm yết</p>
+        </div>
         <NotificationBell />
-      </div>
+      </header>
       
-      <div className="flex gap-6 mb-8 text-lg font-heading bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-        <Link href="/seller" className="text-slate-600 hover:text-brand-green font-semibold transition-colors flex items-center gap-2">
-          <span>+</span> Về gian chính (Nhập thêm)
+      <div className="flex mb-8">
+        <Link href="/seller" className="bg-brand-green text-white hover:bg-brand-green-dark font-semibold py-2.5 px-5 rounded-xl shadow-sm transition-all flex items-center gap-2">
+          <span>+</span> Nhập sản phẩm mới
         </Link>
       </div>
 
