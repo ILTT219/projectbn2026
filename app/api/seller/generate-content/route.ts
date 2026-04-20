@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     `;
 
     const response = await openai.chat.completions.create({
-      model: "llama-3.1-70b-versatile", // Using a reliable groq model instead of the openai/gpt-oss-120b if it fails, wait, the environment says GROQ_MODEL=openai/gpt-oss-120b? There is no such model on Groq. The env file is probably for something else? Let's use llama-3.1-70b-versatile. Wait, let me check package.json for what they used previously. Or I can just use process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'.
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: "json_object" },
     });

@@ -1,105 +1,109 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from "@google/genai";
+
+/**
+ * Dịch prompt tiếng Việt sang tiếng Anh bằng Groq LLaMA
+ */
+async function translateToEnglish(vietnameseText: string): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey || !vietnameseText.trim()) return vietnameseText;
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a translator. Translate the following Vietnamese text to English. Only output the English translation, nothing else. Keep it concise and descriptive for image generation purposes." 
+          },
+          { role: "user", content: vietnameseText }
+        ],
+        temperature: 0.3,
+        max_tokens: 200
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return data.choices[0]?.message?.content?.trim() || vietnameseText;
+    }
+  } catch (err) {
+    console.log('Translation failed, using original text');
+  }
+  return vietnameseText;
+}
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
+    const data = await req.json();
+
+    // Dịch các trường tiếng Việt sang tiếng Anh cho image model
+    const [productNameEn, highlightsEn, requirementsEn, locationEn] = await Promise.all([
+      translateToEnglish(data.productName || ''),
+      translateToEnglish(data.highlights || 'Sản phẩm chất lượng cao'),
+      translateToEnglish(data.requirements || 'Chuyên nghiệp, tối giản, màu sáng'),
+      translateToEnglish(data.location || 'Bắc Ninh, Vietnam'),
+    ]);
     
-    const productName = formData.get('productName')?.toString() || "";
-    const location = formData.get('location')?.toString() || "";
-    const requirements = formData.get('requirements')?.toString() || "";
-    const features = formData.get('features')?.toString() || "";
-    const aspectRatio = formData.get('aspectRatio')?.toString() || "1:1";
-    
-    const logoFile = formData.get('logoFile') as File | null;
-    const productFile0 = formData.get('productFile0') as File | null;
-    const productFile1 = formData.get('productFile1') as File | null;
+    const promptText = 
+      `Professional product photography, studio lighting, white clean background. ` +
+      `Vietnamese OCOP product: ${productNameEn}. ` +
+      `Origin: ${locationEn}. ` +
+      `Features: ${highlightsEn}. ` +
+      `Style: ${requirementsEn}. ` +
+      `High-end commercial photo, realistic, appealing, no text overlay, no watermark.`;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Thiếu GEMINI_API_KEY ở máy chủ" }, { status: 500 });
-    }
+    // Pollinations.ai — free image generation
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&seed=${Date.now()}&nologo=true`;
 
-    const ai = new GoogleGenAI({ apiKey });
-
-    // Base prompt
-    const prompt = `
-        Create a professional artistic advertising background for a Vietnamese OCOP (One Commune, One Product) product.
-        
-        Product Name: ${productName}
-        Origin: ${location}
-        Key Features: ${features}
-        User Requirements: ${requirements}
-        
-        Design Style Requirements:
-        - High-end commercial photography style, studio lighting.
-        - The product should be the central focus, looking realistic and appealing.
-        - IMPORTANT: If a logo is provided in the input, place it accurately at the TOP CENTER.
-        - DO NOT include any other arbitrary text or typography in the background.
-        - Feature traditional Vietnamese elements related to ${location} if applicable.
-        - Maintain overall mood: Trustworthy, premium, authentic.
-        - Aspect ratio constraint applies. No distorted shapes.
-      `;
-
-    const parts: any[] = [{ text: prompt }];
-
-    // Helper file to part
-    async function addFileToParts(file: File) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      parts.unshift({
-        inlineData: {
-          data: buffer.toString('base64'),
-          mimeType: file.type || 'image/png'
-        }
+    try {
+      const res = await fetch(pollinationsUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; OCOPBot/1.0)' },
       });
+
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const contentType = res.headers.get('content-type') || 'image/jpeg';
+        return NextResponse.json({ image: `data:${contentType};base64,${base64}` });
+      }
+    } catch (pollErr: any) {
+      console.log('Pollinations error:', pollErr.message);
     }
 
-    if (logoFile) {
-      await addFileToParts(logoFile);
-    }
-    if (productFile0) {
-      await addFileToParts(productFile0);
-    }
-    if (productFile1) {
-      await addFileToParts(productFile1);
-    }
+    // Fallback: try Gemini
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: parts,
-      },
-      config: {
-        imageConfig: {
-          aspectRatio: aspectRatio === '16:9' ? '16:9' : '1:1',
-        },
-      },
-    });
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: { parts: [{ text: promptText }] },
+          config: { imageConfig: { aspectRatio: '1:1' } },
+        });
 
-    let imageUrl = null;
-    let textResponse = "";
-
-    if (response.candidates && response.candidates.length > 0) {
-      const partsResult = response.candidates[0].content?.parts || [];
-      for (const part of partsResult) {
-        if (part.inlineData) {
-          imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-          break;
-        } else if (part.text) {
-          textResponse += part.text;
+        if (response.candidates && response.candidates.length > 0) {
+          const parts = response.candidates[0]?.content?.parts || [];
+          for (const part of parts) {
+            if (part.inlineData) {
+              return NextResponse.json({ 
+                image: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}` 
+              });
+            }
+          }
         }
+      } catch (geminiErr: any) {
+        console.log('Gemini fallback failed:', geminiErr.message);
       }
     }
 
-    if (imageUrl) {
-      return NextResponse.json({ image: imageUrl });
-    } else {
-      if (textResponse) {
-        throw new Error(`AI model error message: ${textResponse}`);
-      } else {
-        throw new Error("Không thể trích xuất hình ảnh từ phản hồi của AI.");
-      }
-    }
+    return NextResponse.json({ error: "Không thể tạo hình ảnh. Vui lòng thử lại." }, { status: 500 });
 
   } catch (err: any) {
     console.error("Image Generation Error", err);

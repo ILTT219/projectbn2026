@@ -1,63 +1,110 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
+
+/**
+ * Dịch prompt tiếng Việt sang tiếng Anh bằng Groq LLaMA
+ */
+async function translateToEnglish(vietnameseText: string): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey || !vietnameseText.trim()) return vietnameseText;
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a translator. Translate the following Vietnamese text to English. Only output the English translation, nothing else. Keep it concise and descriptive for image generation purposes." 
+          },
+          { role: "user", content: vietnameseText }
+        ],
+        temperature: 0.3,
+        max_tokens: 200
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return data.choices[0]?.message?.content?.trim() || vietnameseText;
+    }
+  } catch (err) {
+    console.log('Translation failed, using original text');
+  }
+  return vietnameseText;
+}
 
 export async function POST(req: Request) {
   try {
     const data = await req.json();
+
+    // Dịch các trường tiếng Việt sang tiếng Anh cho image model
+    const [productNameEn, highlightsEn, requirementsEn, locationEn] = await Promise.all([
+      translateToEnglish(data.productName || ''),
+      translateToEnglish(data.highlights || 'Sản phẩm chất lượng cao'),
+      translateToEnglish(data.requirements || 'Chuyên nghiệp, tối giản, màu sáng'),
+      translateToEnglish(data.location || 'Bắc Ninh, Vietnam'),
+    ]);
     
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: "Chưa cấu hình GEMINI_API_KEY trong môi trường (.env.local)" }, { status: 400 });
+    const promptText = 
+      `Professional product photography, studio lighting, white clean background. ` +
+      `Vietnamese OCOP product: ${productNameEn}. ` +
+      `Origin: ${locationEn}. ` +
+      `Features: ${highlightsEn}. ` +
+      `Style: ${requirementsEn}. ` +
+      `High-end commercial photo, realistic, appealing, no text overlay, no watermark.`;
+
+    // Pollinations.ai — free image generation
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&seed=${Date.now()}&nologo=true`;
+
+    try {
+      const res = await fetch(pollinationsUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; OCOPBot/1.0)' },
+      });
+
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const contentType = res.headers.get('content-type') || 'image/jpeg';
+        return NextResponse.json({ image: `data:${contentType};base64,${base64}` });
+      }
+    } catch (pollErr: any) {
+      console.log('Pollinations error:', pollErr.message);
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    
-    const prompt = `
-      Create a professional artistic advertising background for a Vietnamese OCOP (One Commune, One Product) product.
-      
-      Product Name: ${data.productName}
-      Origin: ${data.location}
-      Key Features: ${data.highlights}
-      User Requirements: ${data.requirements || 'Professional, minimalist, bright colors'}
-      
-      Design Style Requirements:
-      - High-end commercial photography style, studio lighting.
-      - The product should be the central focus, looking realistic and appealing.
-      - Incorporate subtle traditional Vietnamese cultural elements or motifs related to ${data.location} if applicable (e.g., Kinh Bac patterns, traditional silk, bamboo, or local landscapes).
-      - Composition should be balanced, clean, and professional.
-      - Lighting should be natural and enhance the product's texture and details.
-      - Overall mood: Trustworthy, premium, authentic, and culturally rich.
-      - No distorted shapes, maintain realistic product features.
-    `;
+    // Fallback: try Gemini
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [{ text: prompt }],
-      },
-      config: {
-        imageConfig: {
-          aspectRatio: '1:1',
-        },
-      },
-    });
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: { parts: [{ text: promptText }] },
+          config: { imageConfig: { aspectRatio: '1:1' } },
+        });
 
-    let imageUrl = null;
-
-    if (response.candidates && response.candidates.length > 0) {
-      const parts = response.candidates[0]?.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData) {
-          imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
-          break;
+        if (response.candidates && response.candidates.length > 0) {
+          const parts = response.candidates[0]?.content?.parts || [];
+          for (const part of parts) {
+            if (part.inlineData) {
+              return NextResponse.json({ 
+                image: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}` 
+              });
+            }
+          }
         }
+      } catch (geminiErr: any) {
+        console.log('Gemini fallback failed:', geminiErr.message);
       }
     }
 
-    if (imageUrl) {
-      return NextResponse.json({ image: imageUrl });
-    } else {
-      return NextResponse.json({ error: "Không tìm thấy nội dung hình ảnh từ phản hồi của AI." }, { status: 500 });
-    }
+    return NextResponse.json({ error: "Không thể tạo hình ảnh. Vui lòng thử lại." }, { status: 500 });
+
   } catch (err: any) {
     console.error("Image Generation Error", err);
     return NextResponse.json({ error: err.message || "Lỗi tạo hình ảnh" }, { status: 500 });
