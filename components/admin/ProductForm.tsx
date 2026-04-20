@@ -548,16 +548,26 @@ export default function ProductForm({
                   <textarea placeholder="VD: Quy trình canh tác hữu cơ, không chất bảo quản, hương vị đặc trưng của vùng đất Kinh Bắc..." value={aiHighlights} onChange={e => setAiHighlights(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-slate-800 text-sm min-h-[80px] resize-y" />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={generateContent}
-                  disabled={aiGenerating}
-                  className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand-green/20 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
-                >
-                  {aiGenerating ? (
-                    <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang soạn thảo...</>
-                  ) : (<><span>✨</span> Tạo nội dung ngay<span className="ml-1">›</span></>)}
-                </button>
+                <div className="mt-2 flex flex-col gap-3">
+                  <a 
+                    href="https://aistudio.google.com/apps/b359236e-1a52-4bff-b51f-5dad3e8ab2f0?showPreview=true&showAssistant=true" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="w-full bg-[#f4f7fe] hover:bg-[#eaeffb] text-[#1a73e8] text-sm font-bold py-3 px-6 rounded-xl border border-[#d6e2fb] transition-all flex justify-center items-center gap-2 text-center"
+                  >
+                    AI hỗ trợ từ Google AI Studio ↗
+                  </a>
+                  <button
+                    type="button"
+                    onClick={generateContent}
+                    disabled={aiGenerating}
+                    className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand-green/20 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {aiGenerating ? (
+                      <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang soạn thảo...</>
+                    ) : (<><span>✨</span> Tạo nội dung ngay<span className="ml-1">›</span></>)}
+                  </button>
+                </div>
               </div>
 
               {/* Right: Preview */}
@@ -589,7 +599,6 @@ export default function ProductForm({
                       <button type="button" onClick={applyGeneratedContent} className="flex-1 bg-brand-green hover:bg-brand-green-dark text-white font-bold py-2.5 rounded-xl transition-all text-sm">✓ Áp dụng nội dung này</button>
                       <button type="button" onClick={generateContent} disabled={aiGenerating} className="bg-white border border-slate-200 hover:border-brand-green text-slate-600 hover:text-brand-green font-semibold py-2.5 px-4 rounded-xl transition-all text-sm">↻ Tạo lại</button>
                     </div>
-                    <a href="https://aistudio.google.com/apps/b359236e-1a52-4bff-b51f-5dad3e8ab2f0?showPreview=true&showAssistant=true" target="_blank" rel="noopener noreferrer" className="text-center text-xs text-slate-400 hover:text-brand-green mt-3 transition-colors">Hoặc mở Google AI Studio ↗</a>
                   </div>
                 )}
               </div>
@@ -702,16 +711,26 @@ export default function ProductForm({
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={generateImage}
-                  disabled={aiGenerating}
-                  className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand-green/20 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
-                >
-                  {aiGenerating ? (
-                    <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang tạo thiết kế...</>
-                  ) : (<><span>🎨</span> Bắt đầu sáng tạo<span className="ml-1">›</span></>)}
-                </button>
+                <div className="mt-2 flex flex-col gap-3">
+                  <a 
+                    href="https://aistudio.google.com/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0?showPreview=true&showAssistant=true" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="w-full bg-[#f4f7fe] hover:bg-[#eaeffb] text-[#1a73e8] text-sm font-bold py-3 px-6 rounded-xl border border-[#d6e2fb] transition-all flex justify-center items-center gap-2 text-center"
+                  >
+                    AI hỗ trợ từ Google AI Studio ↗
+                  </a>
+                  <button
+                    type="button"
+                    onClick={generateImage}
+                    disabled={aiGenerating}
+                    className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand-green/20 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {aiGenerating ? (
+                      <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang tạo thiết kế...</>
+                    ) : (<><span>🎨</span> Bắt đầu sáng tạo<span className="ml-1">›</span></>)}
+                  </button>
+                </div>
               </div>
 
               {/* Right: Preview */}
@@ -742,7 +761,6 @@ export default function ProductForm({
                       <button type="button" onClick={applyGeneratedImage} className="flex-1 bg-brand-green hover:bg-brand-green-dark text-white font-bold py-2.5 rounded-xl transition-all text-sm">✓ Sử dụng ảnh này</button>
                       <button type="button" onClick={generateImage} disabled={aiGenerating} className="bg-white border border-slate-200 hover:border-brand-green text-slate-600 hover:text-brand-green font-semibold py-2.5 px-4 rounded-xl transition-all text-sm">↻ Tạo lại</button>
                     </div>
-                    <a href="https://aistudio.google.com/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0?showPreview=true&showAssistant=true" target="_blank" rel="noopener noreferrer" className="text-center text-xs text-slate-400 hover:text-brand-green mt-3 transition-colors">Hoặc mở Google AI Studio ↗</a>
                   </div>
                 )}
               </div>
