@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     let requirements = '';
     let location = '';
     let aspectRatio = '1:1';
-    let referenceImageBase64 = '';
+    let referenceImagesBase64: string[] = [];
 
     if (contentType.includes('multipart/form-data')) {
       // Handle FormData with reference image
@@ -58,10 +58,16 @@ export async function POST(req: Request) {
       location = formData.get('location')?.toString() || '';
       aspectRatio = formData.get('aspectRatio')?.toString() || '1:1';
       
-      const refImage = formData.get('referenceImage') as File | null;
-      if (refImage && refImage.size) {
-        const arrayBuffer = await refImage.arrayBuffer();
-        referenceImageBase64 = Buffer.from(arrayBuffer).toString('base64');
+      const refImage1 = formData.get('referenceImage1') as File | null;
+      if (refImage1 && refImage1.size) {
+        const arrayBuffer = await refImage1.arrayBuffer();
+        referenceImagesBase64.push(Buffer.from(arrayBuffer).toString('base64'));
+      }
+      
+      const refImage2 = formData.get('referenceImage2') as File | null;
+      if (refImage2 && refImage2.size) {
+        const arrayBuffer = await refImage2.arrayBuffer();
+        referenceImagesBase64.push(Buffer.from(arrayBuffer).toString('base64'));
       }
     } else {
       // Handle JSON body
@@ -81,8 +87,8 @@ export async function POST(req: Request) {
       translateToEnglish(location || 'Bắc Ninh, Vietnam'),
     ]);
 
-    const basePrompt = referenceImageBase64
-      ? `Enhance and professionally retouch this product photo. Keep the product's original appearance but improve lighting, background, and presentation. ` +
+    const basePrompt = referenceImagesBase64.length > 0
+      ? `Enhance and professionally retouch this product photo(s). Keep the product's original appearance but improve lighting, background, and presentation. Combine elements if multiple angles are provided, or choose the best one. ` +
         `Vietnamese OCOP product: ${productNameEn}. ` +
         `Origin: ${locationEn}. Features: ${highlightsEn}. Style: ${requirementsEn}. ` +
         `High-end commercial photo, realistic, appealing, no text overlay, no watermark.`
@@ -94,25 +100,25 @@ export async function POST(req: Request) {
         `High-end commercial photo, realistic, appealing, no text overlay, no watermark.`;
 
     // If reference image provided, try Gemini first (supports image input)
-    if (referenceImageBase64 && process.env.GEMINI_API_KEY) {
+    if (referenceImagesBase64.length > 0 && process.env.GEMINI_API_KEY) {
       try {
         const { GoogleGenAI } = await import('@google/genai');
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+        const parts: any[] = [{ text: basePrompt }];
+        for (const base64 of referenceImagesBase64) {
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: base64 } });
+        }
+
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash-preview-05-20',
-          contents: { 
-            parts: [
-              { text: basePrompt },
-              { inlineData: { mimeType: 'image/jpeg', data: referenceImageBase64 } }
-            ] 
-          },
+          contents: { parts },
           config: { responseModalities: ['TEXT', 'IMAGE'] },
         });
 
         if (response.candidates && response.candidates.length > 0) {
-          const parts = response.candidates[0]?.content?.parts || [];
-          for (const part of parts) {
+          const resParts = response.candidates[0]?.content?.parts || [];
+          for (const part of resParts) {
             if (part.inlineData) {
               return NextResponse.json({ 
                 image: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}` 
@@ -121,7 +127,7 @@ export async function POST(req: Request) {
           }
         }
       } catch (geminiErr: any) {
-        console.log('Gemini with reference image failed:', geminiErr.message);
+        console.log('Gemini with reference images failed:', geminiErr.message);
       }
     }
 

@@ -75,7 +75,7 @@ export default function ProductForm({
   const [aiRequirements, setAiRequirements] = useState("")
   const [aiImageSize, setAiImageSize] = useState<"1:1" | "16:9">("1:1")
   const [generatedImgBase64, setGeneratedImgBase64] = useState("")
-  const [aiReferenceFile, setAiReferenceFile] = useState<File | null>(null)
+  const [aiReferenceFiles, setAiReferenceFiles] = useState<File[]>([])
   const aiRefInputRef = useRef<HTMLInputElement>(null)
 
   const repFileInputRef = useRef<HTMLInputElement>(null)
@@ -114,7 +114,7 @@ export default function ProductForm({
 
   const openImageModal = () => {
     setGeneratedImgBase64("")
-    setAiReferenceFile(null)
+    setAiReferenceFiles([])
     if (aiRefInputRef.current) aiRefInputRef.current.value = ""
     setShowImageModal(true)
   }
@@ -171,7 +171,7 @@ export default function ProductForm({
     setGeneratedImgBase64("")
     try {
       let res: Response
-      if (aiReferenceFile) {
+      if (aiReferenceFiles.length > 0) {
         // Send as FormData with reference image
         const formData = new FormData()
         formData.append('productName', name)
@@ -179,7 +179,10 @@ export default function ProductForm({
         formData.append('requirements', aiRequirements)
         formData.append('location', origin)
         formData.append('aspectRatio', aiImageSize)
-        formData.append('referenceImage', aiReferenceFile)
+        formData.append('referenceImage1', aiReferenceFiles[0])
+        if (aiReferenceFiles.length > 1) {
+          formData.append('referenceImage2', aiReferenceFiles[1])
+        }
         res = await fetch(`${apiPrefix}/generate-image`, {
           method: 'POST',
           body: formData
@@ -651,25 +654,41 @@ export default function ProductForm({
 
                 <div>
                   <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center justify-between">
-                    <span className="flex items-center gap-1"><span className="text-brand-green">✦</span> Ảnh tư liệu (Không bắt buộc)</span>
-                    {aiReferenceFile && (
-                      <button type="button" onClick={() => { setAiReferenceFile(null); if (aiRefInputRef.current) aiRefInputRef.current.value = ""; }} className="text-[10px] text-red-500 hover:underline">Xoá ảnh</button>
+                    <span className="flex items-center gap-1"><span className="text-brand-green">✦</span> Ảnh tư liệu (Tối đa 2 ảnh, không bắt buộc)</span>
+                    {aiReferenceFiles.length > 0 && (
+                      <button type="button" onClick={() => { setAiReferenceFiles([]); if (aiRefInputRef.current) aiRefInputRef.current.value = ""; }} className="text-[10px] text-red-500 hover:underline">Xoá tất cả</button>
                     )}
                   </label>
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      ref={aiRefInputRef}
-                      onChange={e => setAiReferenceFile(e.target.files?.[0] || null)}
-                      className="hidden" 
-                    />
-                    <button type="button" onClick={() => aiRefInputRef.current?.click()} className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 border-dashed text-slate-600 font-semibold py-2.5 px-4 rounded-lg transition-all text-sm flex items-center justify-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                      {aiReferenceFile ? "Đã chọn 1 ảnh gốc" : "Tải lên ảnh gốc / phác thảo..."}
-                    </button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        multiple
+                        ref={aiRefInputRef}
+                        onChange={e => {
+                          const files = Array.from(e.target.files || []);
+                          setAiReferenceFiles(prev => [...prev, ...files].slice(0, 2));
+                        }}
+                        className="hidden" 
+                      />
+                      <button type="button" onClick={() => aiRefInputRef.current?.click()} className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 border-dashed text-slate-600 font-semibold py-2.5 px-4 rounded-lg transition-all text-sm flex items-center justify-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Tải lên ảnh gốc / phác thảo...
+                      </button>
+                    </div>
+                    {aiReferenceFiles.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {aiReferenceFiles.map((file, idx) => (
+                          <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-white">
+                            <img src={URL.createObjectURL(file)} alt="Ref" className="w-full h-full object-cover" />
+                            <button type="button" onClick={() => setAiReferenceFiles(prev => prev.filter((_, i) => i !== idx))} className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center rounded-bl-sm text-[10px]">&times;</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1">AI sẽ dựa vào ảnh này để chỉnh sửa, làm đẹp mà không thay đổi cấu trúc gốc.</p>
+                  <p className="text-[10px] text-slate-400 mt-1">AI sẽ dựa vào những ảnh này để phân tích cấu trúc, cải thiện ánh sáng và làm đẹp (Chọn 1-2 góc ảnh).</p>
                 </div>
 
                 <div className="flex gap-3 text-xs">

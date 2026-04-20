@@ -81,7 +81,8 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (prodErr || !prodData) {
-      return NextResponse.json({ error: 'Unable to create product' }, { status: 500 })
+      console.error("DEBUG POST ERR:", prodErr);
+      return NextResponse.json({ error: 'Unable to create product', details: prodErr }, { status: 500 })
     }
 
     const productId = prodData.id
