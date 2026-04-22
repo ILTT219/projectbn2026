@@ -11,9 +11,10 @@ export default function proxy(req: NextRequest) {
   const isAdminLoginPage = pathname.startsWith('/admin/login')
   const isSellerRoute = pathname.startsWith('/seller')
   const isAdminRoute = pathname.startsWith('/admin')
+  const isSettingsRoute = pathname.startsWith('/settings')
 
   // Not a protected route
-  if (!isSellerRoute && (!isAdminRoute || isAdminLoginPage)) {
+  if (!isSellerRoute && !isSettingsRoute && (!isAdminRoute || isAdminLoginPage)) {
     return NextResponse.next()
   }
 
@@ -52,5 +53,5 @@ export default function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/seller/:path*']
+  matcher: ['/admin/:path*', '/seller/:path*', '/settings/:path*']
 }
