@@ -51,7 +51,7 @@ Which category IDs match this query? Return ONLY a valid JSON array of numbers (
           const content = json.choices[0]?.message?.content || '[]';
           try {
             // Lọc ra mảng từ nội dung trả về
-            const match = content.match(/\[.*\]/s);
+            const match = content.match(/\[[\s\S]*\]/);
             if (match) {
               targetCategories = JSON.parse(match[0]);
             }
