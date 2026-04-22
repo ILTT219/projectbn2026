@@ -88,23 +88,15 @@ export async function POST(req: Request) {
     ]);
 
     const basePrompt = referenceImagesBase64.length > 0
-      ? `CRITICAL INSTRUCTION: You are a high-end commercial product photographer. I am providing reference image(s) of a real product. 
-You MUST extract the exact product shown and place it in a new professional setting. 
-RULE 1: The product itself (shape, colors, text, branding, materials, details) MUST NOT BE ALTERED, MORPHED, OR REDESIGNED in any way. Keep it EXACTLY identical to the reference.
-RULE 2: The final image must be hyper-realistic, photographic, and indistinguishable from a real photograph. No cartoonish, painted, or overly stylized AI look.
-RULE 3: Do NOT add any fake text, fictional fonts, or watermarks.
-
-Context details for the environment:
-- Product Theme: Vietnamese OCOP product, ${productNameEn}.
-- Origin/Vibe: ${locationEn}.
-- Key Features: ${highlightsEn}.
-- Desired Style/Background: ${requirementsEn}.
-
-Create a stunning, photorealistic studio photography shot.`
-      : `CRITICAL INSTRUCTION: You are a high-end commercial product photographer. 
-Create a hyper-realistic, photorealistic product photography shot. It must look identical to a real photograph taken with a DSLR camera. No painting, no 3D render look, no cartoonish styles.
+      ? `Product photography, pure product isolation. Center focus on the main object: ${productNameEn}.
+CRITICAL REQUIREMENT: The core object MUST REMAIN 100% ORIGINAL and UNTOUCHED. Do not change its shape, color, text, logo, or design. Keep it EXACTLY identical to the reference image provided.
+ONLY change the SURROUNDING BACKGROUND and LIGHTING to: ${requirementsEn}.
+Features to highlight: ${highlightsEn}. Origin vibe: ${locationEn}.
+Cinematic studio lighting, 8k resolution, photorealistic DSLR, masterpiece. NO fictional text, NO watermarks.`
+      : `CRITICAL INSTRUCTION: You are an expert Ad Agency Art Director and Graphic Designer. 
+Create a hyper-realistic, 8k masterpiece, high-end commercial product POSTER. It must look like a million-dollar advertising campaign. DSLR, photorealistic.
 RULE 1: Do NOT add any fictional text, weird fonts, or watermarks. 
-RULE 2: Create a minimal, clean, professional composition.
+RULE 2: Create a minimal, clean, professional composition that highlights the product.
 
 Context details:
 - Product Theme: Vietnamese OCOP product, ${productNameEn}.
@@ -112,7 +104,7 @@ Context details:
 - Key Features: ${highlightsEn}.
 - Desired Style/Background: ${requirementsEn}.
 
-Studio setup, perfect lighting, 8k resolution, highly detailed realism.`;
+Creative, visually stunning, ad agency quality, cinematic lighting, 8k resolution.`;
 
     // If reference image provided, try Gemini first (supports image input)
     if (referenceImagesBase64.length > 0 && process.env.GEMINI_API_KEY) {
@@ -120,15 +112,37 @@ Studio setup, perfect lighting, 8k resolution, highly detailed realism.`;
         const { GoogleGenAI } = await import('@google/genai');
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-        const parts: any[] = [{ text: basePrompt }];
+        // Step 1: Extract visual description to reduce hallucination
+        let visualDescription = '';
+        try {
+           const descParts: any[] = [{ text: "Analyze this product image. Describe its physical appearance in extreme detail: exact shape, dominant colors, materials, packaging style, and any text visible. Output ONLY the English description, making it concise and optimized as an image generation prompt." }];
+           for (const base64 of referenceImagesBase64) {
+             descParts.push({ inlineData: { mimeType: 'image/jpeg', data: base64 } });
+           }
+           const descResponse = await ai.models.generateContent({
+             model: 'gemini-1.5-flash',
+             contents: { role: 'user', parts: descParts }
+           });
+           if (descResponse.candidates && descResponse.candidates.length > 0) {
+             const textPart = descResponse.candidates[0]?.content?.parts?.find(p => p.text);
+             if (textPart) visualDescription = textPart.text || '';
+           }
+        } catch (e) {
+           console.log('Failed to extract visual description', e);
+        }
+
+        const enhancedPrompt = basePrompt + (visualDescription ? `\n\nEXACT VISUAL DETAILS TO MATCH:\n${visualDescription}` : '');
+
+        // Step 2: Generate Image
+        const parts: any[] = [{ text: enhancedPrompt }];
         for (const base64 of referenceImagesBase64) {
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: base64 } });
         }
 
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-preview-05-20',
+          model: 'gemini-2.5-flash',
           contents: { parts },
-          config: { responseModalities: ['TEXT', 'IMAGE'] },
+          config: { responseModalities: ['IMAGE'] },
         });
 
         if (response.candidates && response.candidates.length > 0) {
@@ -146,9 +160,63 @@ Studio setup, perfect lighting, 8k resolution, highly detailed realism.`;
       }
     }
 
-    // Pollinations.ai — free image generation (no reference image support)
+    // 1. Nếu có Leonardo AI API Key, ưu tiên dùng Leonardo
+    if (process.env.LEONARDO_API_KEY) {
+      try {
+        const leoOptions = {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            authorization: `Bearer ${process.env.LEONARDO_API_KEY}`
+          },
+          body: JSON.stringify({
+            height: aspectRatio === '16:9' ? 720 : 1024,
+            prompt: basePrompt,
+            width: aspectRatio === '16:9' ? 1280 : 1024,
+            num_images: 1,
+            modelId: '1e60896f-3c26-4296-8ecc-53e2afecc132', // Leonardo Diffusion XL
+          })
+        };
+        const leoRes = await fetch('https://cloud.leonardo.ai/api/rest/v1/generations', leoOptions);
+        if (leoRes.ok) {
+          const leoData = await leoRes.json();
+          const generationId = leoData.sdGenerationJob.generationId;
+          
+          let imageUrl = null;
+          for (let i = 0; i < 10; i++) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            const pollRes = await fetch(`https://cloud.leonardo.ai/api/rest/v1/generations/${generationId}`, {
+              headers: {
+                accept: 'application/json',
+                authorization: `Bearer ${process.env.LEONARDO_API_KEY}`
+              }
+            });
+            const pollData = await pollRes.json();
+            if (pollData.generations_by_pk && pollData.generations_by_pk.status === 'COMPLETE') {
+              if (pollData.generations_by_pk.generated_images.length > 0) {
+                imageUrl = pollData.generations_by_pk.generated_images[0].url;
+              }
+              break;
+            }
+          }
+
+          if (imageUrl) {
+            const imgRes = await fetch(imageUrl);
+            const arrayBuffer = await imgRes.arrayBuffer();
+            const base64 = Buffer.from(arrayBuffer).toString('base64');
+            const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+            return NextResponse.json({ image: `data:${contentType};base64,${base64}` });
+          }
+        }
+      } catch (leoErr: any) {
+        console.error('Leonardo AI error:', leoErr.message);
+      }
+    }
+
+    // 2. Pollinations.ai — free image generation (no reference image support)
     const dimensions = aspectRatio === '16:9' ? 'width=1280&height=720' : 'width=1024&height=1024';
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(basePrompt)}?${dimensions}&seed=${Date.now()}&nologo=true`;
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(basePrompt)}?${dimensions}&seed=${Date.now()}&nologo=true&model=flux-realism`;
 
     try {
       const res = await fetch(pollinationsUrl, {

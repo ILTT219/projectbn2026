@@ -28,17 +28,58 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Lấy các sản phẩm đang chờ duyệt
+    // Lấy tất cả sản phẩm, thông tin seller và đánh giá
     const { data, error } = await supabaseAdmin
       .from('products')
-      .select('*, users:seller_id(email)')
-      .neq('status', 'approved')
+      .select('*, users:seller_id(email, name), product_reviews(rating, sentiment)')
       .order('id', { ascending: false })
 
     if (error) {
       return NextResponse.json({ error: 'Lỗi lấy dữ liệu' }, { status: 500 })
     }
-    return NextResponse.json({ data })
+
+    // Tính toán số sao trung bình và cảm xúc đa số
+    const enrichedData = data.map(product => {
+      const reviews = product.product_reviews || [];
+      const reviewCount = reviews.length;
+      let avgRating = 0;
+      let majoritySentiment = 'N/A';
+
+      if (reviewCount > 0) {
+        const sumRating = reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0);
+        avgRating = Number((sumRating / reviewCount).toFixed(1));
+
+        const sentiments = { positive: 0, negative: 0, neutral: 0 };
+        reviews.forEach((r: any) => {
+          if (r.sentiment === 'positive') sentiments.positive++;
+          else if (r.sentiment === 'negative') sentiments.negative++;
+          else if (r.sentiment === 'neutral') sentiments.neutral++;
+        });
+
+        // Find majority
+        let maxCount = 0;
+        for (const [s, count] of Object.entries(sentiments)) {
+          if (count > maxCount) {
+            maxCount = count;
+            majoritySentiment = s;
+          }
+        }
+      }
+
+      // Xóa array reviews gốc để giảm payload
+      delete product.product_reviews;
+
+      return {
+        ...product,
+        avgRating,
+        reviewCount,
+        majoritySentiment,
+        sellerEmail: product.users?.email || 'N/A',
+        sellerName: product.users?.name || product.users?.email || 'Hệ thống'
+      }
+    });
+
+    return NextResponse.json({ data: enrichedData })
   } catch (err: any) {
     return NextResponse.json({ error: 'Lỗi máy chủ' }, { status: 500 })
   }

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
+import ReviewSection from "@/components/product/ReviewSection"
+import RecommendedProducts, { trackProductView } from "@/components/product/RecommendedProducts"
 
 interface Product {
   id: number
@@ -14,6 +16,8 @@ interface Product {
   origin?: string
   contact_address?: string
   phone?: string
+  latitude?: number
+  longitude?: number
 }
 
 interface ProductImage {
@@ -55,6 +59,7 @@ export default function ProductDetail() {
         }
 
         setProduct(productData)
+        trackProductView(id)
 
         const { data: imagesData } = await supabase
           .from("images")
@@ -64,22 +69,22 @@ export default function ProductDetail() {
         setImages(imagesData || [])
 
         try {
-          await fetch("/api/products/track-view", {
+          fetch("/api/products/track-view", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ product_id: id }),
-          })
+          }).catch(() => {})
         } catch (e) {}
 
         productSub = supabase
-          .channel(`product-updates-${id}`)
+          .channel(`product-updates-${id}-${Math.random()}`)
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'products', filter: `id=eq.${id}` },
             (payload) => { if (payload.new) setProduct((prev) => ({...prev, ...payload.new} as Product)) }
           )
           .subscribe()
 
         imagesSub = supabase
-          .channel(`product-images-${id}`)
+          .channel(`product-images-${id}-${Math.random()}`)
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'images', filter: `product_id=eq.${id}` },
             (payload) => { if (payload.new) setImages((prev) => [...prev, payload.new as ProductImage]) }
           )
@@ -284,6 +289,12 @@ export default function ProductDetail() {
              </div>
            </div>
         </div>
+
+        {/* Reviews Section */}
+        <ReviewSection productId={product.id} />
+
+        {/* Recommended Products */}
+        <RecommendedProducts productId={product.id} categoryId={product.category_id} />
       </div>
     </div>
   )

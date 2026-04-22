@@ -1,0 +1,15 @@
+1. HỆ THỐNG GỢI Ý SẢN PHẨM THÔNG MINH:
+upgrade phần
+Tìm kiếm nông sản, đặc sản OCOP...
+ gợi ý sản phẩm dựa trên các thông tin như nhóm danh mục văn hóa, thực phẩm, hành vi xem hàng của người dùng (ví dụ: khi user tìm kiếm"tranh đông hồ" hệ thống hiển thị thêm các sản phẩm liên quan như "gốm phù lãng" hoặc "đồ gốm mỹ nghệ" một cách tự động
+2. CÔNG CỤ HỖ TRỢ CHỦ THỂ OCOP:
+hỗ trợ khâu truyền thông của các hộ sản xuất nhỏ lẻ bằng cách sử dụng Generative AI để tự động hóa nội dung marketing
+(AI phải có khả năng tạo ra ít nhất 3 loại nội dung: Mô tả sản phẩm chuẩn SEO, Bài viết mạng xã hội như Facebook/Zalo, và kịch bản video ngắn như Tik Tok)
+3. TỐI ƯU HÓA MÔ HÌNH AI VÀ DỮ LIỆU:
+sử dụng prompt từ folder C:\Users\ASUS\web\app\prompt-tu-lieu để hạn chế hiện tượng ảo giác (hallucination) của AI làm biến dạng hình dáng cốt lõi của sản phẩm
+4. BẢN ĐỒ SỐ TƯƠNG TÁC LÀNG NGHỀ:
+tích hợp Geolocation gợi ý ghé thăm cơ sở sản xuất gần nhất nếu hệ thống xắc định được vị trí của du khách(khi được cho phép), xây dựng giao diện bản đồ có hiển thị điểm dừng chân, cơ sở OCOP và thông tin trải nghiệm tại chỗ
+5. QUẢN LÝ UY TÍN THƯƠNG HIỆU TỰ ĐỘNG:
+sử dụng AI để giám sát chất lượng dịch vụ và phản hồi của khách hàng
+phân loại các bình luận đánh giá của khách hàng thành các nhóm: Tích cực, Trung lập, Tiêu cực
+thiết lập cơ chế nếu có đánh giá tiêu cực kèm từ khóa về "chất lượng", "vệ sinh", hệ thống phải tự động gửi thông báo khẩn cấp cho quản trị viên kèm gợi ý cách phản hồi

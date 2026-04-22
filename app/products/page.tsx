@@ -118,6 +118,34 @@ export default function ProductsPage() {
         }
       }
 
+      // Nhận diện từ khóa chung chung (Semantic/Category Matching)
+      const categoryKeywords: Record<string, number[]> = {
+        'đồ ăn': [1, 2], 'do an': [1, 2], 'thức ăn': [1, 2], 'thuc an': [1, 2],
+        'đồ uống': [6], 'do uong': [6], 'nước': [6], 'nuoc': [6], 'giải khát': [6],
+        'đồ thủ công': [4], 'do thu cong': [4], 'mỹ nghệ': [4], 'my nghe': [4],
+        'du lịch': [4, 5, 2, 6], 'du lich': [4, 5, 2, 6], 'quà lưu niệm': [4], 'qua luu niem': [4],
+        'nông sản': [1, 2, 3], 'nong san': [1, 2, 3],
+        'sức khỏe': [3], 'suc khoe': [3], 'thuốc': [3], 'thuoc': [3], 'dược': [3], 'duoc': [3]
+      }
+
+      let categoryBonus = 0
+      for (const [key, catIds] of Object.entries(categoryKeywords)) {
+        if (q.includes(key) || qNormalized.includes(key)) {
+          if (catIds.includes(p.categoryId)) {
+            categoryBonus += 40
+          }
+        }
+      }
+      
+      // Bonus nếu từ khóa khớp trực tiếp với tên danh mục (vd: "lương thực")
+      const catName = categories.find(c => c.id === p.categoryId)?.name.toLowerCase() || ''
+      const catNameNormalized = removeAccents(catName)
+      if (catName.includes(q) || catNameNormalized.includes(qNormalized)) {
+        categoryBonus += 50
+      }
+
+      score += categoryBonus
+
       return { product: p, score }
     })
 
@@ -197,8 +225,38 @@ export default function ProductsPage() {
 
       <div className="mt-6">
         {filtered.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500 font-sans">
-            Không tìm thấy sản phẩm nào khớp với tìm kiếm.
+          <div className="mb-8">
+            <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500 font-sans mb-8">
+              Không tìm thấy sản phẩm nào khớp với "{query}". Dưới đây là các sản phẩm nổi bật của chúng tôi:
+            </div>
+            {/* Show suggested products when search fails */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {productList.slice(0, 8).map((p) => (
+                <Link key={p.id} href={`/products/${p.id}`} className="block group">
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md hover:border-brand-green/30 transition-all group-hover:-translate-y-1 duration-300">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-slate-50">
+                      {p.img ? (
+                        <img
+                          src={p.img}
+                          alt={p.name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300 text-3xl">🌾</div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-heading font-bold text-slate-800 text-sm line-clamp-2 group-hover:text-brand-green transition-colors leading-snug">
+                        {p.name}
+                      </h3>
+                      <p className="text-xs text-brand-gold uppercase tracking-wider mt-1 font-bold">
+                        {categories.find(c => c.id === p.categoryId)?.name}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 

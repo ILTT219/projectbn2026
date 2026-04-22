@@ -21,6 +21,9 @@ export default function AdminLayout({
           <a href="/admin/stats" className="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors">
             Thống kê truy cập
           </a>
+          <a href="/admin/ai-studio" className="block px-4 py-2.5 rounded-lg text-sm font-medium bg-brand-gold/10 text-brand-gold hover:bg-brand-gold hover:text-white transition-colors flex items-center justify-between">
+            <span>✨ AI Studio</span>
+          </a>
         </nav>
         
         <div className="p-4 border-t border-slate-800">

@@ -44,6 +44,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-8">
             <NavLink href="/" active={isActive("/")}>Trang chủ</NavLink>
             <NavLink href="/products" active={isActive("/products")}>Sản phẩm</NavLink>
+            <NavLink href="/map" active={isActive("/map")}>Bản đồ</NavLink>
           </div>
           
           <div className="h-6 w-px bg-slate-200 hidden md:block"></div>

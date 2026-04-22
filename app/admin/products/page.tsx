@@ -123,24 +123,46 @@ export default function AdminProductsPage() {
               <tr className="border-b border-slate-200 bg-slate-50 text-sm tracking-wider text-slate-500 uppercase rounded-lg">
                 <th className="py-4 px-4 text-center rounded-l-lg">Mã</th>
                 <th className="py-4 px-4">Tên Sản Phẩm</th>
+                <th className="py-4 px-4">Người Đăng</th>
                 <th className="py-4 px-4">Danh Mục</th>
+                <th className="py-4 px-4 text-center">Đánh giá</th>
+                <th className="py-4 px-4 text-center">Cảm xúc</th>
                 <th className="py-4 px-4 text-center">Lượt Xem</th>
                 <th className="py-4 px-4 text-right rounded-r-lg">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-base">
-              {products.map((p) => (
+              {products.map((p: any) => (
                 <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="py-4 px-4 text-center text-slate-500 font-bold">{p.id}</td>
                   <td className="py-4 px-4 font-bold text-slate-800">{p.name}</td>
+                  <td className="py-4 px-4 text-slate-600 text-sm">{p.sellerName || 'N/A'}</td>
                   <td className="py-4 px-4 text-slate-700">
                     <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-sm font-semibold">
                       {categories.find((c) => c.id === p.category_id)?.name || p.category_id}
                     </span>
                   </td>
                   <td className="py-4 px-4 text-center">
-                    <div className="inline-flex items-center gap-1.5 text-slate-700 font-bold bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                      <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    {p.reviewCount > 0 ? (
+                      <div className="flex flex-col items-center">
+                        <span className="text-amber-500 font-bold flex items-center gap-1">
+                          {p.avgRating} <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        </span>
+                        <span className="text-xs text-slate-400">({p.reviewCount})</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 text-sm">Chưa có</span>
+                    )}
+                  </td>
+                  <td className="py-4 px-4 text-center">
+                    {p.majoritySentiment === 'positive' && <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Tích cực</span>}
+                    {p.majoritySentiment === 'negative' && <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Tiêu cực</span>}
+                    {p.majoritySentiment === 'neutral' && <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-bold">Trung lập</span>}
+                    {(p.majoritySentiment === 'N/A' || !p.majoritySentiment) && <span className="text-slate-400">-</span>}
+                  </td>
+                  <td className="py-4 px-4 text-center">
+                    <div className="inline-flex items-center gap-1.5 text-slate-700 font-bold bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                      <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                       {p.view_count || 0}
                     </div>
                   </td>
@@ -163,7 +185,7 @@ export default function AdminProductsPage() {
               
               {products.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-500 text-xl font-medium">
+                  <td colSpan={8} className="py-12 text-center text-slate-500 text-xl font-medium">
                     Không có sản phẩm nào trong hệ thống.
                   </td>
                 </tr>

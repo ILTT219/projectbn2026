@@ -28,14 +28,27 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await supabaseAdmin
       .from('products')
-      .select('id, name, category_id, view_count')
+      .select('id, name, category_id, view_count, product_reviews(rating)')
       .order('view_count', { ascending: false })
 
     if (error) {
       console.error('error fetching stats', error)
       return NextResponse.json({ error: 'Unable to fetch stats' }, { status: 500 })
     }
-    return NextResponse.json({ data })
+
+    const enrichedData = data.map((p: any) => {
+      const reviews = p.product_reviews || [];
+      const reviewCount = reviews.length;
+      let avgRating = 0;
+      if (reviewCount > 0) {
+        const sum = reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0);
+        avgRating = Number((sum / reviewCount).toFixed(1));
+      }
+      delete p.product_reviews;
+      return { ...p, reviewCount, avgRating };
+    });
+
+    return NextResponse.json({ data: enrichedData })
   } catch (err: any) {
     console.error('GET stats error', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

@@ -5,10 +5,10 @@ import { createClient } from '@supabase/supabase-js'
 const SYSTEM_PROMPT = `Bạn là tư vấn viên khách hàng chuyên nghiệp cho website nông sản OCOP Bắc Ninh.
 
 QUYẾT TẮC TRẢ LỜI:
-- CHỈ trả lời dựa trên thông tin sản phẩm được cung cấp
-- Nếu không có dữ liệu: "Hiện tại hệ thống chưa có dữ liệu về sản phẩm này"
-- KHÔNG tự suy đoán hay bịa chuyện
-- Trả lời tiếng Việt, thân thiện
+- Trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp.
+- Ưu tiên cung cấp thông tin dựa trên danh sách SẢN PHẨM bên dưới.
+- Nếu người dùng hỏi các câu hỏi kiến thức ngoài lề (lịch sử, địa lý, lễ hội...), hãy tham khảo phần KIẾN THỨC BỔ SUNG (nếu có) và TRÍCH DẪN NGUỒN đầy đủ.
+- KHÔNG tự suy đoán hay bịa chuyện nếu không có thông tin.
 - Khi khách hỏi xem chi tiết sản phẩm, hãy cung cấp link dứt khoát như: "Bạn có thể xem chi tiết tại /products/[ID]"
 
 ĐỊNH DẠNG TRÌNH BÀY:
@@ -29,7 +29,10 @@ Dùng emoji để làm rõ ràng:
 SẢN PHẨM:
 {PRODUCT_DATA}
 
-LUẬT QUAN TRỌNG: Luôn bao gồm link sản phẩm khi trả lời liên quan đến sản phẩm cụ thể.`
+KIẾN THỨC BỔ SUNG TỪ WIKIPEDIA (nếu có):
+{WIKI_DATA}
+
+LUẬT QUAN TRỌNG: Luôn bao gồm link sản phẩm khi trả lời liên quan đến sản phẩm cụ thể. NẾU dùng kiến thức từ Wikipedia, PHẢI để lại link trích dẫn ở cuối câu trả lời.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -75,9 +78,32 @@ export async function POST(req: NextRequest) {
       console.warn('Failed to fetch products:', dbErr)
     }
 
-    const systemPrompt = SYSTEM_PROMPT.replace('{PRODUCT_DATA}', productData)
+    // Web Search: Use Wikipedia if the query asks for external knowledge
+    let wikiContext = "";
+    try {
+      const lowerMessage = message.toLowerCase();
+      // Các từ khóa nghi ngờ cần tra cứu kiến thức
+      const needsSearch = lowerMessage.includes('là gì') || lowerMessage.includes('lịch sử') || lowerMessage.includes('ai là') || lowerMessage.includes('tại sao') || lowerMessage.includes('hội') || lowerMessage.includes('lễ') || lowerMessage.includes('tỉnh') || lowerMessage.includes('wiki');
+      
+      if (needsSearch) {
+        const keywords = message.replace(/[?.,!]/g, '').replace(/là gì|cho tôi biết|về|lịch sử|của|bạn có biết/gi, '').trim();
+        if (keywords) {
+          const wikiUrl = `https://vi.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(keywords)}&utf8=&format=json`;
+          const wikiRes = await fetch(wikiUrl);
+          const wikiData = await wikiRes.json();
+          if (wikiData.query?.search?.length > 0) {
+            const topResult = wikiData.query.search[0];
+            wikiContext = `Tiêu đề: ${topResult.title}\nTóm tắt: ${topResult.snippet.replace(/<[^>]+>/g, '')}\nNguồn tham khảo: https://vi.wikipedia.org/wiki/${encodeURIComponent(topResult.title.replace(/ /g, '_'))}`;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Wiki search error:', e);
+    }
 
-    const GROQ_MODEL = process.env.GROQ_MODEL || 'mixtral-8x7b-32768'
+    const systemPrompt = SYSTEM_PROMPT.replace('{PRODUCT_DATA}', productData).replace('{WIKI_DATA}', wikiContext)
+
+    const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
     console.log('Using GROQ_MODEL=', GROQ_MODEL)
 
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {

@@ -36,6 +36,16 @@ export default function SellerDashboard() {
               <p className="font-sans text-sm text-slate-500 mt-1">Thống kê truy cập sản phẩm</p>
             </div>
           </Link>
+
+          <Link href="/seller/content-generator" className="bg-white p-6 rounded-2xl border border-purple-200/40 shadow-sm hover:shadow-purple-100/30 hover:border-purple-400 transition-all group flex items-start gap-4 sm:col-span-2">
+            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </div>
+            <div>
+              <h3 className="font-heading font-semibold text-slate-800 text-lg group-hover:text-purple-600 transition-colors">✨ Công cụ Truyền thông AI</h3>
+              <p className="font-sans text-sm text-slate-500 mt-1">Tạo mô tả SEO, bài Facebook/Zalo, kịch bản TikTok bằng AI</p>
+            </div>
+          </Link>
         </div>
 
         <div className="mb-4 mt-8 flex items-center gap-3">

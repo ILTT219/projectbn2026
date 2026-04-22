@@ -1,4 +1,8 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import LiveSearch from "@/components/search/LiveSearch"
 
 const category = [
   { id: 1, name: "Lương thực" },
@@ -25,6 +29,15 @@ const images: Record<number, string> = {
  * Landing page of the OCOP Bắc Ninh platform. Professional E-commerce Style.
  */
 export default function Home() {
+  const [topProducts, setTopProducts] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch('/api/products/top?limit=6')
+      .then(r => r.json())
+      .then(d => setTopProducts(d.products || []))
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="bg-slate-50 min-h-screen pb-20">
       {/* Hero Banner Area */}
@@ -54,20 +67,7 @@ export default function Home() {
                 </Link>
 
                 {/* Product Search Form */}
-                <form action="/products" method="GET" className="relative w-full max-w-md">
-                  <input
-                    type="text"
-                    name="search"
-                    placeholder="Tìm kiếm nông sản, đặc sản OCOP..."
-                    className="w-full bg-white border border-slate-200 text-slate-900 rounded-full py-3.5 pl-6 pr-16 shadow-md focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green transition-all"
-                    required
-                  />
-                  <button type="submit" className="absolute right-2 top-2 bottom-2 aspect-square bg-brand-green text-white rounded-full flex items-center justify-center hover:bg-brand-green-dark transition-colors" aria-label="Tìm kiếm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </button>
-                </form>
+                <LiveSearch />
               </div>
             </div>
           </div>
@@ -119,7 +119,61 @@ export default function Home() {
         </div>
       </section>
 
-      {/* T rust Indicators */}
+      {/* Top Products Section */}
+      {topProducts.length > 0 && (
+        <section className="container-custom pt-24">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4 px-[10px]">
+            <div>
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-slate-900 mb-2">
+                ⭐ Sản phẩm <span className="text-brand-green">được yêu thích</span>
+              </h2>
+              <p className="text-slate-500 text-sm">Những sản phẩm được người dùng đánh giá cao nhất</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {topProducts.map((p: any, i: number) => (
+              <Link key={p.id} href={`/products/${p.id}`} className="block group">
+                <div className="ocop-card h-full flex flex-col group-hover:-translate-y-1 transition-transform duration-300 overflow-hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                    {p.img ? (
+                      <img src={p.img} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300 text-4xl">🌾</div>
+                    )}
+                    {i < 3 && (
+                      <div className={`absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg ${
+                        i === 0 ? 'bg-amber-500' : i === 1 ? 'bg-slate-400' : 'bg-amber-700'
+                      }`}>
+                        #{i + 1}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 flex flex-col flex-1">
+                    <h3 className="font-heading font-bold text-slate-900 text-base mb-2 line-clamp-2 group-hover:text-brand-green transition-colors">{p.name}</h3>
+                    <div className="flex items-center gap-2 mt-auto">
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(s => (
+                          <svg key={s} className={`w-4 h-4 ${s <= Math.round(p.avg_rating) ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700">{p.avg_rating}</span>
+                      <span className="text-xs text-slate-400">({p.review_count} đánh giá)</span>
+                    </div>
+                    {p.origin && (
+                      <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">📍 {p.origin}</p>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Trust Indicators */}
       <section className="container-custom pt-24 pb-10">
         <div className="bg-white border border-slate-200 rounded-2xl p-8 lg:p-12 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-slate-100">

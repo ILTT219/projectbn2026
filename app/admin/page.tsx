@@ -8,6 +8,7 @@ const OWNER_EMAIL = 't219t3@gmail.com'
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'users' | 'products' | 'admin' | 'manage_admins'>('users')
   const [isOwner, setIsOwner] = useState(false)
+  const [alertCount, setAlertCount] = useState(0)
   
   // States cho Người chờ duyệt
   const [pendingUsers, setPendingUsers] = useState<any[]>([])
@@ -27,7 +28,7 @@ export default function AdminPage() {
   const [adminList, setAdminList] = useState<any[]>([])
   const [loadingAdmins, setLoadingAdmins] = useState(false)
 
-  // Kiểm tra quyền Owner
+  // Kiểm tra quyền Owner + lấy alert count
   useEffect(() => {
     fetch('/api/auth/me')
       .then(res => res.json())
@@ -36,6 +37,12 @@ export default function AdminPage() {
           setIsOwner(true)
         }
       })
+      .catch(() => {})
+    
+    // Fetch unresolved alerts count
+    fetch('/api/admin/alerts?resolved=false', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setAlertCount(data.stats?.unresolved || 0))
       .catch(() => {})
   }, [])
 
@@ -143,11 +150,21 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-6xl mx-auto pb-12">
-      <div className="mb-8">
-        <h1 className="font-heading text-3xl md:text-3xl font-bold text-slate-900 mb-2">
-          Bảng điều khiển Quản trị
-        </h1>
-        <p className="text-slate-500 font-sans text-sm">Kiểm duyệt sản phẩm, người dùng và quản lý hệ thống</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-3xl md:text-3xl font-bold text-slate-900 mb-2">
+            Bảng điều khiển Quản trị
+          </h1>
+          <p className="text-slate-500 font-sans text-sm">Kiểm duyệt sản phẩm, người dùng và quản lý hệ thống</p>
+        </div>
+        <Link href="/admin/reputation" className="inline-flex items-center gap-2 bg-white border border-slate-200 hover:border-brand-green/30 hover:bg-brand-green/5 text-slate-700 hover:text-brand-green font-semibold text-sm py-2.5 px-5 rounded-xl transition-all shadow-sm">
+          🛡️ Uy tín Thương hiệu
+          {alertCount > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center animate-pulse">
+              {alertCount}
+            </span>
+          )}
+        </Link>
       </div>
       
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">

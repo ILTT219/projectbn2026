@@ -1,0 +1,2 @@
+các sản phẩm liên quan trong phần chi tiết sản phẩm sẽ được đề xuất theo danh mục và lượt xem của user đó để tăng tính cá nhân hóa
+tính năng AI tạo ảnh của phần tạo sản phẩm chưa được tối ưu, có thể thay thế model được user đánh giá cao nhất hoặc giúp tôi train model cho đến khi AI tạo ảnh phù hợp với ý tôi

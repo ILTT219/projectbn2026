@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getContentPromptContext } from '@/lib/prompt-loader';
 
 export async function POST(req: Request) {
   try {
@@ -9,35 +10,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing GROQ_API_KEY in .env.local" }, { status: 500 });
     }
 
+    // Inject anti-hallucination prompt từ prompt-tu-lieu
+    const promptContext = getContentPromptContext();
+
     const prompt = `
-      Bạn là một chuyên gia copywriter và am hiểu sâu sắc về văn hóa Kinh Bắc (Bắc Ninh).
-      Hãy viết nội dung quảng bá cho sản phẩm OCOP sau đây:
+${promptContext}
+
+Hãy viết nội dung quảng bá cho sản phẩm OCOP sau đây:
       
-      - Tên sản phẩm: ${data.productName}
-      - Chủ thể OCOP: ${data.subject}
-      - Địa phương: ${data.location}
-      - Nhóm sản phẩm: ${data.productGroup}
-      - Điểm nổi bật: ${data.highlights}
-      - Hạng chứng nhận OCOP: ${data.certification}
-      - Câu chuyện địa phương: ${data.localStory}
+- Tên sản phẩm: ${data.productName}
+- Chủ thể OCOP: ${data.subject}
+- Địa phương: ${data.location}
+- Nhóm sản phẩm: ${data.productGroup}
+- Điểm nổi bật: ${data.highlights}
+- Hạng chứng nhận OCOP: ${data.certification || 'Chưa cung cấp'}
+- Câu chuyện địa phương: ${data.localStory || 'Chưa cung cấp'}
       
-      Yêu cầu:
-      1. Mô tả chi tiết (300-600 từ): 
-         - Giới thiệu về nguồn gốc, truyền thống của địa phương ${data.location} gắn liền với sản phẩm.
-         - Phân tích sâu các điểm nổi bật: ${data.highlights}.
-         - Đề cập văn phong chuyên nghiệp, truyền cảm hứng.
+Yêu cầu:
+1. Mô tả chi tiết (300-600 từ): 
+   - Giới thiệu về nguồn gốc, truyền thống của địa phương ${data.location} gắn liền với sản phẩm.
+   - Phân tích sâu các điểm nổi bật: ${data.highlights}.
+   - Đề cập văn phong chuyên nghiệp, truyền cảm hứng.
       
-      2. Nội dung chuẩn SEO:
-         - Tiêu đề SEO (dưới 60 ký tự).
-         - Meta Description (dưới 160 ký tự).
-         - Danh sách 5-7 từ khóa chính.
+2. Nội dung chuẩn SEO:
+   - Tiêu đề SEO (dưới 60 ký tự).
+   - Meta Description (dưới 160 ký tự).
+   - Danh sách 5-7 từ khóa chính.
       
-      Chỉ xuất ra đúng 1 object JSON hợp lệ với 2 khóa:
-      {
-        "description": "Nội dung phần 1",
-        "seoContent": "Nội dung phần 2"
-      }
-      Tuyệt đối KHÔNG trả về markdown, không có text dư thừa ngoài định dạng JSON!
+Chỉ xuất ra đúng 1 object JSON hợp lệ với 2 khóa:
+{
+  "description": "Nội dung phần 1",
+  "seoContent": "Nội dung phần 2"
+}
+Tuyệt đối KHÔNG trả về markdown, không có text dư thừa ngoài định dạng JSON!
     `;
 
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
