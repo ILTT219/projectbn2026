@@ -32,6 +32,23 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showContact, setShowContact] = useState(false)
+  const [marketingContent, setMarketingContent] = useState<string | null>(null)
+  const [loadingMarketing, setLoadingMarketing] = useState(false)
+
+  const generateMarketing = async () => {
+    if (!product?.id) return;
+    setLoadingMarketing(true);
+    try {
+      const res = await fetch(`/api/products/marketing?id=${product.id}`);
+      const data = await res.json();
+      if (data.content) setMarketingContent(data.content);
+      else alert(data.error || 'Lỗi tạo bài viết');
+    } catch (e) {
+      alert('Lỗi kết nối AI');
+    } finally {
+      setLoadingMarketing(false);
+    }
+  }
 
   useEffect(() => {
     let productSub: any = null
@@ -48,7 +65,7 @@ export default function ProductDetail() {
 
         const { data: productData, error: prodErr } = await supabase
           .from("products")
-          .select("id, name, description, img, origin, contact_address, phone")
+          .select("id, name, category_id, description, img, origin, contact_address, phone")
           .eq("id", id)
           .single()
 
@@ -229,6 +246,34 @@ export default function ProductDetail() {
                    ) : (
                      <p className="text-slate-400 text-sm italic">Sản phẩm này hiện đang cập nhật thêm thông tin miêu tả chi tiết.</p>
                    )}
+
+                   {/* AI Marketing Button */}
+                   <div className="mt-4 pt-4 border-t border-slate-200">
+                     <button 
+                       onClick={generateMarketing}
+                       disabled={loadingMarketing}
+                       className="text-brand-gold hover:text-brand-gold-dark font-semibold text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+                     >
+                       {loadingMarketing ? (
+                         <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                       ) : (
+                         <span className="text-lg">🪄</span>
+                       )}
+                       {loadingMarketing ? "AI Đang phân tích dữ liệu và viết bài..." : "Tự động viết bài PR / Marketing (AI)"}
+                     </button>
+                     
+                     {marketingContent && (
+                       <div className="mt-4 p-4 bg-brand-gold/10 border border-brand-gold/20 rounded-lg text-sm text-slate-700 whitespace-pre-wrap relative">
+                         <div className="absolute top-2 right-2 flex gap-2">
+                           <button onClick={() => navigator.clipboard.writeText(marketingContent)} className="text-slate-400 hover:text-brand-gold" title="Copy nội dung">
+                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                           </button>
+                         </div>
+                         <div className="font-semibold text-brand-gold mb-2">✨ AI Copywriter:</div>
+                         {marketingContent}
+                       </div>
+                     )}
+                   </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl border border-emerald-200/60">

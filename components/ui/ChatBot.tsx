@@ -158,10 +158,35 @@ export default function ChatBot() {
 
               {messages.map((msg, i) => {
                 const isUser = msg.role === "user"
-                // Parse all product links
-                const productLinks = [...msg.content.matchAll(/\/products\/(\d+)/g)]
-                let formattedContent = msg.content
                 
+                // Parse markdown-style product links: [Product Name](/products/ID)
+                const markdownLinkRegex = /\[([^\]]+)\]\(\/products\/(\d+)\)/g
+                const productMap = new Map<string, string>() // id -> name (dedup)
+                let match
+                while ((match = markdownLinkRegex.exec(msg.content)) !== null) {
+                  if (!productMap.has(match[2])) {
+                    productMap.set(match[2], match[1])
+                  }
+                }
+
+                // Also catch bare /products/ID links (without markdown syntax)
+                const bareLinksRegex = /(?<!\]\()\/products\/(\d+)/g
+                while ((match = bareLinksRegex.exec(msg.content)) !== null) {
+                  if (!productMap.has(match[1])) {
+                    productMap.set(match[1], `Sản phẩm #${match[1]}`)
+                  }
+                }
+
+                // Clean the display text:
+                // 1. Replace [Name](/products/ID) with just Name
+                // 2. Remove any remaining bare (/products/ID) or /products/ID references
+                let formattedContent = msg.content
+                  .replace(/\[([^\]]+)\]\(\/products\/\d+\)/g, '$1')
+                  .replace(/\s*\(\/products\/\d+\)/g, '')
+                  .replace(/(?<=\s|^)\/products\/\d+/g, '')
+                
+                const productEntries = Array.from(productMap.entries())
+
                 return (
                   <div
                     key={i}
@@ -186,19 +211,19 @@ export default function ChatBot() {
                     >
                       {formattedContent}
                     </div>
-                    {productLinks.length > 0 && !isUser && (
+                    {productEntries.length > 0 && !isUser && (
                        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, width: "80%" }}>
-                         {productLinks.map((match, idx) => (
+                         {productEntries.map(([id, name]) => (
                            <a 
-                             key={idx} 
-                             href={match[0]}
+                             key={id} 
+                             href={`/products/${id}`}
                              style={{
                                display: "flex", alignItems: "center", justifyContent: "space-between",
                                padding: "8px 12px", background: "white", border: "1px solid #16a34a",
                                borderRadius: 8, textDecoration: "none", color: "#16a34a", fontSize: 13, fontWeight: "bold"
                              }}
                            >
-                             <span style={{flex:1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>Sản phẩm đề xuất #{match[1]}</span>
+                             <span style={{flex:1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>🛒 {name}</span>
                              <span>→</span>
                            </a>
                          ))}

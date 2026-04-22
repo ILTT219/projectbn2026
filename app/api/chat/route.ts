@@ -2,37 +2,27 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // System prompt tối ưu cho chatbot tư vấn sản phẩm
-const SYSTEM_PROMPT = `Bạn là tư vấn viên khách hàng chuyên nghiệp cho website nông sản OCOP Bắc Ninh.
+const SYSTEM_PROMPT = `Bạn là tư vấn viên chuyên nghiệp cho website nông sản OCOP Bắc Ninh.
 
-QUYẾT TẮC TRẢ LỜI:
-- Trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp.
-- Ưu tiên cung cấp thông tin dựa trên danh sách SẢN PHẨM bên dưới.
-- Nếu người dùng hỏi các câu hỏi kiến thức ngoài lề (lịch sử, địa lý, lễ hội...), hãy tham khảo phần KIẾN THỨC BỔ SUNG (nếu có) và TRÍCH DẪN NGUỒN đầy đủ.
-- KHÔNG tự suy đoán hay bịa chuyện nếu không có thông tin.
-- Khi khách hỏi xem chi tiết sản phẩm, hãy cung cấp link dứt khoát như: "Bạn có thể xem chi tiết tại /products/[ID]"
+QUY TẮC TƯ VẤN SẢN PHẨM (MÔ HÌNH THÁC NƯỚC - BẮT BUỘC TUÂN THỦ NGHIÊM NGẶT):
+Khi khách hàng yêu cầu tìm kiếm sản phẩm, bạn phải quét DANH SÁCH SẢN PHẨM và đối chiếu theo thứ tự độc lập sau:
+1. TIÊU CHÍ 1: Khớp Tên gọi.
+2. TIÊU CHÍ 2: Khớp Nguyên liệu (dựa vào Tên hoặc Mô tả để phân tích).
+=> LUẬT THÉP: Nếu KHÔNG CÓ sản phẩm nào khớp Tiêu chí 1 hoặc Tiêu chí 2, bạn BẮT BUỘC phải nói rõ: "Trong cơ sở dữ liệu hiện không có sản phẩm nào thỏa mãn yêu cầu của bạn".
+3. ĐỀ XUẤT THAY THẾ: Chỉ sau khi đã nói rõ câu trên, bạn mới được phép đề xuất các sản phẩm khác có cùng tính chất, công dụng hoặc cùng danh mục để thay thế.
 
-ĐỊNH DẠNG TRÌNH BÀY:
-Khi liệt kê sản phẩm, dùng format sau (rõ ràng, dễ đọc):
-🔹 [ID] Tên sản phẩm
-   📍 Nơi sản xuất: Xuất xứ
-   📞 Liên hệ: Địa chỉ
-   📝 Mô tả chi tiết...
-   🔗 Xem chi tiết: /products/[ID]
+QUY TẮC TRÌNH BÀY (RẤT QUAN TRỌNG):
+- TRÌNH BÀY LINK ĐÚNG CHUẨN: Khi nhắc đến bất kỳ sản phẩm nào, TUYỆT ĐỐI KHÔNG in ID khô khan (ví dụ: "[123]"). Bạn BẮT BUỘC phải nhúng link bằng Markdown: [Tên Sản Phẩm](/products/ID).
+   -> Viết ĐÚNG: Bạn có thể thử [Bánh Phu Thê Đình Bảng](/products/5)
+   -> Viết SAI: Bánh Phu Thê [5] hoặc /products/5
+- KHÔNG lặp lại link, không thừa, không thiếu link.
+- KHÔNG BỊA ĐẶT SẢN PHẨM NGOÀI DANH SÁCH.
 
-Dùng emoji để làm rõ ràng:
-- ✅ để chỉ có sẵn
-- ❌ để chỉ không có
-- 🌾 cho sản phẩm nông sản
-- 📦 cho thông tin đặc biệt
-- 🔗 cho link chi tiết
-
-SẢN PHẨM:
+DANH SÁCH SẢN PHẨM KHẢ DỤNG:
 {PRODUCT_DATA}
 
 KIẾN THỨC BỔ SUNG TỪ WIKIPEDIA (nếu có):
-{WIKI_DATA}
-
-LUẬT QUAN TRỌNG: Luôn bao gồm link sản phẩm khi trả lời liên quan đến sản phẩm cụ thể. NẾU dùng kiến thức từ Wikipedia, PHẢI để lại link trích dẫn ở cuối câu trả lời.`
+{WIKI_DATA}`
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,24 +45,22 @@ export async function POST(req: NextRequest) {
 
       const { data: products, error } = await supabase
         .from('products')
-        .select('id, name, description, origin, contact_address')
+        .select('id, name, description, origin, contact_address, category_id')
         .limit(30)
 
       if (!error && products && products.length > 0) {
-        productData = products
-          .map((p: any) => {
-            let info = `[${p.id}] ${p.name}\n  📍 ${p.origin || 'N/A'}`
-            if (p.contact_address) info += `\n  📞 ${p.contact_address}`
-            if (p.description) {
-              const desc = p.description.trim().substring(0, 200)
-              info += `\n  📝 ${desc}${p.description.length > 200 ? '...' : ''}`
-            }
-            // Thêm link chi tiết sản phẩm
-            const productUrl = `/products/${p.id}`
-            info += `\n  🔗 ${productUrl}`
-            return info
-          })
-          .join('\n\n')
+          productData = products
+            .map((p: any) => {
+              let info = `- ID: ${p.id} | Tên: ${p.name}\n  📍 Xuất xứ: ${p.origin || 'N/A'}`
+              if (p.category_id) info += `\n  🏷️ ID Danh mục: ${p.category_id}`
+              if (p.contact_address) info += `\n  📞 Liên hệ: ${p.contact_address}`
+              if (p.description) {
+                const desc = p.description.trim().substring(0, 200)
+                info += `\n  📝 Mô tả: ${desc}${p.description.length > 200 ? '...' : ''}`
+              }
+              return info
+            })
+            .join('\n\n')
       }
     } catch (dbErr) {
       console.warn('Failed to fetch products:', dbErr)
@@ -131,24 +119,30 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const txt = await res.text().catch(() => '')
       console.error('Groq error', res.status, txt)
-      // If the model was decommissioned, provide a helpful message to the developer
+
       try {
         const parsed = JSON.parse(txt)
+
+        // Rate limit (429) — trả thông báo thân thiện cho người dùng
+        if (res.status === 429 || parsed?.error?.code === 'rate_limit_exceeded') {
+          const retryMatch = parsed?.error?.message?.match(/try again in (.+?)\./i)
+          const retryInfo = retryMatch ? retryMatch[1] : 'một lúc nữa'
+          return NextResponse.json({
+            reply: `⏳ Hệ thống AI đang tạm nghỉ do quá tải. Vui lòng thử lại sau **${retryInfo}**.\n\n_Mẹo: Bạn vẫn có thể duyệt sản phẩm bình thường trong thời gian chờ._`
+          })
+        }
+
+        // Model decommissioned
         if (parsed?.error?.code === 'model_decommissioned') {
           return NextResponse.json({
-            reply: `Model decommissioned: ${parsed.error.message}. Set a supported model via GROQ_MODEL in your .env.local. See https://console.groq.com/docs/deprecations for recommendations.`,
-            status: res.status,
-            body: parsed,
-            model: GROQ_MODEL,
-            apiKeyPresent: !!apiKey
-          }, { status: 502 })
+            reply: '⚠️ Model AI hiện tại đã ngừng hỗ trợ. Vui lòng liên hệ quản trị viên để cập nhật.'
+          })
         }
       } catch (e) {
         // ignore JSON parse errors
       }
 
-      // return the provider body to client for easier debugging
-      return NextResponse.json({ reply: 'Groq API error', status: res.status, body: txt, model: GROQ_MODEL, apiKeyPresent: !!apiKey }, { status: 502 })
+      return NextResponse.json({ reply: '❌ Lỗi kết nối AI, vui lòng thử lại sau.' }, { status: 502 })
     }
 
     const data = await res.json()

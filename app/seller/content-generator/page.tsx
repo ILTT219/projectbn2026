@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
 
 const categories = [
   "Lương thực", "Thực phẩm", "Dược liệu",
@@ -18,6 +19,31 @@ export default function ContentGeneratorPage() {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<Record<ContentType, any>>({ seo: null, social: null, tiktok: null })
   const [copied, setCopied] = useState("")
+  const [products, setProducts] = useState<any[]>([])
+  const [selectedProductId, setSelectedProductId] = useState<string>("")
+  const [customPrompt, setCustomPrompt] = useState("")
+
+  useEffect(() => {
+    fetch('/api/seller/products', { credentials: 'same-origin' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.data) setProducts(data.data)
+      })
+      .catch(err => console.error(err))
+  }, [])
+
+  useEffect(() => {
+    if (selectedProductId) {
+      const p = products.find(p => p.id.toString() === selectedProductId)
+      if (p) {
+        setProductName(p.name)
+        setDescription(p.description || "")
+        setHighlights(p.description || "")
+        const catName = categories.find((_, i) => i + 1 === p.category_id)
+        if (catName) setCategory(catName)
+      }
+    }
+  }, [selectedProductId, products])
 
   const generate = async (type: ContentType) => {
     if (!productName.trim()) {
@@ -31,7 +57,7 @@ export default function ContentGeneratorPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ productName, description, highlights, category, contentType: type })
+        body: JSON.stringify({ productName, description, highlights, category, customPrompt, contentType: type })
       })
       const data = await res.json()
       if (res.ok && data.result) {
@@ -86,6 +112,20 @@ export default function ContentGeneratorPage() {
 
               <div className="space-y-4">
                 <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Chọn sản phẩm đã đăng</label>
+                  <select
+                    value={selectedProductId}
+                    onChange={e => setSelectedProductId(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-sm cursor-pointer mb-4"
+                  >
+                    <option value="">-- Chọn sản phẩm có sẵn --</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">* Tên sản phẩm</label>
                   <input
                     type="text"
@@ -119,13 +159,24 @@ export default function ContentGeneratorPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Điểm nổi bật</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Điểm nổi bật / Thành phần</label>
                   <textarea
                     value={highlights}
                     onChange={e => setHighlights(e.target.value)}
                     placeholder="VD: Thủ công 100%, men gốm tự nhiên, truyền thống 700 năm..."
-                    rows={3}
+                    rows={2}
                     className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-sm resize-y"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-brand-green mb-1.5 block">🎯 Bổ sung yêu cầu (Prompt)</label>
+                  <textarea
+                    value={customPrompt}
+                    onChange={e => setCustomPrompt(e.target.value)}
+                    placeholder="VD: Hãy viết với giọng điệu hài hước, tập trung vào công dụng thanh nhiệt..."
+                    rows={2}
+                    className="w-full px-4 py-3 rounded-xl bg-brand-green/5 border border-brand-green/30 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-sm resize-y text-slate-700 placeholder:text-brand-green/40"
                   />
                 </div>
               </div>

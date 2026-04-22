@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const data = await req.json()
-    const { productName, description, highlights, category, contentType } = data
+    const { productName, description, highlights, category, customPrompt, contentType } = data
 
     if (!productName?.trim()) {
       return NextResponse.json({ error: 'Tên sản phẩm bắt buộc' }, { status: 400 })
@@ -42,8 +42,11 @@ export async function POST(req: NextRequest) {
     const productInfo = `
 Tên sản phẩm: ${productName}
 Mô tả: ${description || 'Chưa có'}
-Điểm nổi bật: ${highlights || 'Chưa có'}
+Điểm nổi bật/Thành phần: ${highlights || 'Chưa có'}
 Nhóm sản phẩm: ${category || 'Chưa có'}
+YÊU CẦU BỔ SUNG TỪ NGƯỜI DÙNG: ${customPrompt || 'Không có'}
+
+[LƯU Ý ĐẶC BIỆT]: Nếu có 'Yêu cầu bổ sung', BẠN PHẢI TUÂN THỦ TUYỆT ĐỐI phong cách, giọng điệu hoặc mục tiêu mà người dùng đặt ra trong phần đó.
 `
 
     if (contentType === 'seo') {

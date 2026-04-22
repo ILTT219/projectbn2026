@@ -16,10 +16,13 @@ export default function AdminLayout({
             Khái quát (Dashboard)
           </a>
           <a href="/admin/products" className="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors flex items-center justify-between">
-            <span>Sản phẩm</span>
+            <span>📦 Sản phẩm</span>
+          </a>
+          <a href="/admin/users" className="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors flex items-center justify-between">
+            <span>👥 Tài khoản</span>
           </a>
           <a href="/admin/stats" className="block px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors">
-            Thống kê truy cập
+            📊 Thống kê truy cập
           </a>
           <a href="/admin/ai-studio" className="block px-4 py-2.5 rounded-lg text-sm font-medium bg-brand-gold/10 text-brand-gold hover:bg-brand-gold hover:text-white transition-colors flex items-center justify-between">
             <span>✨ AI Studio</span>

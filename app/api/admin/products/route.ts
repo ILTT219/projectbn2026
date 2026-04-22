@@ -28,19 +28,53 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Lấy tất cả sản phẩm, thông tin seller và đánh giá
-    const { data, error } = await supabaseAdmin
+    // Thử lấy sản phẩm kèm đánh giá
+    let data: any[] | null = null;
+    let hasReviews = true;
+
+    const fullResult = await supabaseAdmin
       .from('products')
       .select('*, users:seller_id(email, name), product_reviews(rating, sentiment)')
       .order('id', { ascending: false })
 
-    if (error) {
-      return NextResponse.json({ error: 'Lỗi lấy dữ liệu' }, { status: 500 })
+    if (fullResult.error) {
+      console.warn('Full query failed (product_reviews may not exist), falling back:', fullResult.error.message)
+      hasReviews = false;
+
+      // Fallback: lấy sản phẩm không kèm reviews
+      const simpleResult = await supabaseAdmin
+        .from('products')
+        .select('*, users:seller_id(email, name)')
+        .order('id', { ascending: false })
+
+      if (simpleResult.error) {
+        console.error('Simple query also failed:', simpleResult.error.message)
+        
+        // Fallback cuối: lấy sản phẩm không join gì cả
+        const bareResult = await supabaseAdmin
+          .from('products')
+          .select('*')
+          .order('id', { ascending: false })
+        
+        if (bareResult.error) {
+          console.error('Bare query failed:', bareResult.error.message)
+          return NextResponse.json({ error: 'Lỗi lấy dữ liệu: ' + bareResult.error.message }, { status: 500 })
+        }
+        data = bareResult.data;
+      } else {
+        data = simpleResult.data;
+      }
+    } else {
+      data = fullResult.data;
+    }
+
+    if (!data) {
+      return NextResponse.json({ data: [] })
     }
 
     // Tính toán số sao trung bình và cảm xúc đa số
     const enrichedData = data.map(product => {
-      const reviews = product.product_reviews || [];
+      const reviews = hasReviews ? (product.product_reviews || []) : [];
       const reviewCount = reviews.length;
       let avgRating = 0;
       let majoritySentiment = 'N/A';
@@ -67,7 +101,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Xóa array reviews gốc để giảm payload
-      delete product.product_reviews;
+      if (product.product_reviews) delete product.product_reviews;
 
       return {
         ...product,
@@ -81,7 +115,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ data: enrichedData })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Lỗi máy chủ' }, { status: 500 })
+    console.error('Admin products GET error:', err)
+    return NextResponse.json({ error: 'Lỗi máy chủ: ' + err.message }, { status: 500 })
   }
 }
 

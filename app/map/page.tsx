@@ -57,6 +57,9 @@ export default function MapPage() {
   const [selectedProduct, setSelectedProduct] = useState<MapLocation | null>(null)
   const [nearestLocations, setNearestLocations] = useState<{loc: MapLocation, dist: number}[]>([])
   const [leafletReady, setLeafletReady] = useState(false)
+  const [searchRadius, setSearchRadius] = useState(5)
+  const circleRef = useRef<any>(null)
+  const userMarkerRef = useRef<any>(null)
 
   // Load Leaflet from CDN
   useEffect(() => {
@@ -158,6 +161,52 @@ export default function MapPage() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   }
 
+  const updateRadiusAndFilter = useCallback((radius: number, location: {lat: number, lng: number} | null = userLocation) => {
+    setSearchRadius(radius);
+    if (!location || !mapInstance.current || !window.L) return;
+
+    if (circleRef.current) {
+       mapInstance.current.removeLayer(circleRef.current);
+    }
+    if (userMarkerRef.current) {
+       mapInstance.current.removeLayer(userMarkerRef.current);
+    }
+
+    const L = window.L;
+    const userIcon = L.divIcon({
+      className: 'user-marker',
+      html: `<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 8px rgba(59,130,246,0.2),0 2px 8px rgba(0,0,0,0.3);"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    })
+    userMarkerRef.current = L.marker([location.lat, location.lng], { icon: userIcon })
+      .addTo(mapInstance.current)
+      .bindPopup('<b>📍 Vị trí của bạn</b>')
+
+    const dists = locations.map(loc => ({
+      loc,
+      dist: getDistance(location.lat, location.lng, loc.lat, loc.lng)
+    })).sort((a, b) => a.dist - b.dist);
+
+    const withinRadius = dists.filter(item => item.dist <= radius);
+    setNearestLocations(withinRadius);
+    
+    if (withinRadius.length > 0) {
+      setSelectedProduct(withinRadius[0].loc);
+    }
+
+    circleRef.current = L.circle([location.lat, location.lng], {
+      radius: radius * 1000,
+      color: '#10b981',
+      fillColor: '#10b981',
+      fillOpacity: 0.1,
+      weight: 2,
+      dashArray: '5, 5'
+    }).addTo(mapInstance.current);
+
+    mapInstance.current.fitBounds(circleRef.current.getBounds(), { padding: [20, 20] });
+  }, [locations, userLocation]);
+
   const findMyLocation = useCallback(() => {
     if (!navigator.geolocation) {
       alert('Trình duyệt không hỗ trợ định vị')
@@ -167,42 +216,12 @@ export default function MapPage() {
       (pos) => {
         const { latitude, longitude } = pos.coords
         setUserLocation({ lat: latitude, lng: longitude })
-        if (mapInstance.current && window.L) {
-          const L = window.L
-          // Add user marker
-          const userIcon = L.divIcon({
-            className: 'user-marker',
-            html: `<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 8px rgba(59,130,246,0.2),0 2px 8px rgba(0,0,0,0.3);"></div>`,
-            iconSize: [16, 16],
-            iconAnchor: [8, 8],
-          })
-          L.marker([latitude, longitude], { icon: userIcon })
-            .addTo(mapInstance.current)
-            .bindPopup('<b>📍 Vị trí của bạn</b>')
-          
-          // Find nearest locations
-          const dists = locations.map(loc => ({
-            loc,
-            dist: getDistance(latitude, longitude, loc.lat, loc.lng)
-          })).sort((a, b) => a.dist - b.dist);
-
-          const top4 = dists.slice(0, 4);
-
-          if (top4.length > 0) {
-            setNearestLocations(top4);
-            setSelectedProduct(top4[0].loc);
-            // Center map to show both user and the nearest place
-            const bounds = L.latLngBounds([latitude, longitude], [top4[0].loc.lat, top4[0].loc.lng]);
-            mapInstance.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-          } else {
-            mapInstance.current.setView([latitude, longitude], 13)
-          }
-        }
+        updateRadiusAndFilter(searchRadius, { lat: latitude, lng: longitude })
       },
       () => alert('Không thể xác định vị trí'),
       { enableHighAccuracy: true }
     )
-  }, [locations])
+  }, [searchRadius, updateRadiusAndFilter])
 
   const flyTo = (lat: number, lng: number) => {
     if (mapInstance.current) {
@@ -263,37 +282,67 @@ export default function MapPage() {
             </div>
           </div>
 
-          {/* Điểm bán gần nhất (nếu có) */}
-          {nearestLocations.length > 0 && (
-            <div className="p-4 border-b border-brand-green/20 bg-brand-green/5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-green mb-3 flex items-center gap-1">
-                📍 {nearestLocations.length} Điểm gần bạn nhất
-              </h3>
-              <div className="space-y-2">
-                {nearestLocations.map((item, idx) => (
-                  <button
-                    key={item.loc.id}
-                    onClick={() => { flyTo(item.loc.lat, item.loc.lng); setSelectedProduct(item.loc); setSidebarOpen(false) }}
-                    className="w-full text-left p-3 bg-white hover:bg-brand-green/5 rounded-xl border border-brand-green/30 shadow-sm transition-all group relative overflow-hidden"
-                  >
-                    {idx === 0 && (
-                       <div className="absolute top-0 right-0 bg-brand-gold text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg z-10">GẦN NHẤT</div>
-                    )}
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-heading font-bold text-slate-800 text-sm group-hover:text-brand-green transition-colors line-clamp-2 pr-10">
-                        {item.loc.name}
-                      </h4>
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs text-slate-500 truncate max-w-[150px]">{item.loc.origin || 'Bắc Ninh'}</p>
-                      <span className="bg-brand-green text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm">
-                        {item.dist < 1 ? Math.round(item.dist * 1000) + ' m' : item.dist.toFixed(1) + ' km'}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+          {/* Radius Filter */}
+          {userLocation && (
+            <div className="p-4 border-b border-slate-100 shrink-0 bg-slate-50">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Phạm vi tìm kiếm Rada</h3>
+                <span className="text-sm font-bold text-brand-green">{searchRadius} km</span>
+              </div>
+              <input 
+                type="range" 
+                min="1" 
+                max="100" 
+                value={searchRadius} 
+                onChange={(e) => updateRadiusAndFilter(Number(e.target.value))}
+                className="w-full accent-brand-green"
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 font-semibold mt-1">
+                <span>1km</span>
+                <span>100km</span>
               </div>
             </div>
+          )}
+
+          {/* Điểm bán gần nhất (nếu có) */}
+          {userLocation && (
+            nearestLocations.length > 0 ? (
+              <div className="p-4 border-b border-brand-green/20 bg-brand-green/5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-brand-green mb-3 flex items-center gap-1">
+                  📍 {nearestLocations.length} Điểm gần bạn nhất
+                </h3>
+                <div className="space-y-2">
+                  {nearestLocations.map((item, idx) => (
+                    <button
+                      key={item.loc.id}
+                      onClick={() => { flyTo(item.loc.lat, item.loc.lng); setSelectedProduct(item.loc); setSidebarOpen(false) }}
+                      className="w-full text-left p-3 bg-white hover:bg-brand-green/5 rounded-xl border border-brand-green/30 shadow-sm transition-all group relative overflow-hidden"
+                    >
+                      {idx === 0 && (
+                         <div className="absolute top-0 right-0 bg-brand-gold text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg z-10">GẦN NHẤT</div>
+                      )}
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-heading font-bold text-slate-800 text-sm group-hover:text-brand-green transition-colors line-clamp-2 pr-10">
+                          {item.loc.name}
+                        </h4>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-slate-500 truncate max-w-[150px]">{item.loc.origin || 'Bắc Ninh'}</p>
+                        <span className="bg-brand-green text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm">
+                          {item.dist < 1 ? Math.round(item.dist * 1000) + ' m' : item.dist.toFixed(1) + ' km'}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 border-b border-slate-100 text-center">
+                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">📡</div>
+                <p className="text-sm text-slate-500 font-medium">Trong phạm vi <span className="font-bold text-slate-700">{searchRadius} km</span> không có cơ sở nào.</p>
+                <p className="text-xs text-slate-400 mt-1">Vui lòng kéo thanh trượt để mở rộng phạm vi tìm kiếm.</p>
+              </div>
+            )
           )}
 
           {/* Villages List */}
