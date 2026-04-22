@@ -77,6 +77,9 @@ export default function ProductForm({
   const [generatedImgBase64, setGeneratedImgBase64] = useState("")
   const [aiReferenceFiles, setAiReferenceFiles] = useState<File[]>([])
   const aiRefInputRef = useRef<HTMLInputElement>(null)
+  const [aiHistory, setAiHistory] = useState<string[]>([])
+  const [aiHistoryIdx, setAiHistoryIdx] = useState(-1)
+  const [imageWarning, setImageWarning] = useState("")
 
   const repFileInputRef = useRef<HTMLInputElement>(null)
   const prodFileInputRef = useRef<HTMLInputElement>(null)
@@ -115,6 +118,8 @@ export default function ProductForm({
   const openImageModal = () => {
     setGeneratedImgBase64("")
     setAiReferenceFiles([])
+    setAiHistory([])
+    setAiHistoryIdx(-1)
     if (aiRefInputRef.current) aiRefInputRef.current.value = ""
     setShowImageModal(true)
   }
@@ -172,45 +177,32 @@ export default function ProductForm({
     try {
       let res: Response
       if (aiReferenceFiles.length > 0) {
-        // Send as FormData with reference image
         const formData = new FormData()
         formData.append('productName', name)
-        formData.append('highlights', aiHighlights || name)
+        formData.append('highlights', name)
         formData.append('requirements', aiRequirements)
         formData.append('location', origin)
         formData.append('aspectRatio', aiImageSize)
         formData.append('referenceImage1', aiReferenceFiles[0])
-        if (aiReferenceFiles.length > 1) {
-          formData.append('referenceImage2', aiReferenceFiles[1])
-        }
-        res = await fetch(`${apiPrefix}/generate-image`, {
-          method: 'POST',
-          body: formData
-        })
+        if (aiReferenceFiles.length > 1) formData.append('referenceImage2', aiReferenceFiles[1])
+        res = await fetch(`${apiPrefix}/generate-image`, { method: 'POST', body: formData })
       } else {
         res = await fetch(`${apiPrefix}/generate-image`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productName: name,
-            highlights: aiHighlights || name,
-            requirements: aiRequirements,
-            location: origin,
-            aspectRatio: aiImageSize
-          })
+          body: JSON.stringify({ productName: name, highlights: name, requirements: aiRequirements, location: origin, aspectRatio: aiImageSize })
         })
       }
       const data = await res.json()
       if (data.image) {
         setGeneratedImgBase64(data.image)
+        setAiHistory(prev => { const next = [...prev, data.image]; setAiHistoryIdx(next.length - 1); return next; })
         try {
           const resObj = await fetch(data.image)
           const blob = await resObj.blob()
           const file = new File([blob], `ai-avatar-${Date.now()}.png`, { type: 'image/png' })
           setRepresentativeFile(file)
-        } catch (e) {
-          console.error("Failed to parse base64 to file", e)
-        }
+        } catch (e) { console.error("Failed to parse base64 to file", e) }
       } else {
         alert(data.error || "Tạo ảnh lỗi.")
       }
@@ -221,6 +213,23 @@ export default function ProductForm({
     }
   }
 
+  // Kiểm tra chất lượng ảnh (kích thước & có phải ảnh bao bì không)
+  const validateProductImages = () => {
+    setImageWarning("")
+    const allFiles = [...(representativeFile ? [representativeFile] : []), ...productFiles]
+    if (allFiles.length === 0) {
+      setImageWarning("⚠️ Cần ít nhất 1 hình ảnh bao bì sản phẩm.")
+      return false
+    }
+    for (const file of allFiles) {
+      if (file.size < 10000) {
+        setImageWarning(`⚠️ Ảnh "${file.name}" có kích thước quá nhỏ (${(file.size/1024).toFixed(0)}KB). Ảnh có thể bị mờ, vui lòng chọn ảnh rõ nét hơn.`)
+        return false
+      }
+    }
+    return true
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
@@ -228,6 +237,8 @@ export default function ProductForm({
       setMessage("Vui lòng nhập tên và danh mục sản phẩm.")
       return
     }
+
+    if (!validateProductImages()) return
 
     setLoading(true)
 
@@ -468,6 +479,16 @@ export default function ProductForm({
         )}
       </div>
 
+      {imageWarning && (
+        <div className="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl p-4 text-sm font-semibold flex items-start gap-2">
+          <span className="text-lg leading-none">📸</span>
+          <div>
+            <div>{imageWarning}</div>
+            <p className="text-xs font-normal text-amber-600 mt-1">Hình ảnh bao bì giúp khách hàng nhận diện sản phẩm tốt hơn. Ảnh rõ nét ≥ 100KB.</p>
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 pt-2 border-t border-slate-100">
         <button type="submit" className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-green/20 transition-all text-lg flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed" disabled={loading}>
           {loading ? 'Đang lưu trữ...' : submitLabel.replace('✓ Vẩy Mực (Lưu)', 'Lưu Thông Tin').replace('✓ Lưu vết mực', 'Cập Nhật')}
@@ -607,7 +628,7 @@ export default function ProductForm({
         </div>
       )}
 
-      {/* ========== AI IMAGE MODAL (Two-Column) ========== */}
+      {/* ========== AI IMAGE MODAL (Enhanced) ========== */}
       {showImageModal && (
         <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={() => setShowImageModal(false)}>
           <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
@@ -618,8 +639,8 @@ export default function ProductForm({
                   <svg className="w-5 h-5 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 </div>
                 <div>
-                  <h3 className="font-heading font-bold text-slate-800 text-lg">Kiến tạo hình ảnh thương hiệu OCOP</h3>
-                  <p className="text-xs text-slate-500">Nhập thông tin sản phẩm để AI tạo thiết kế chuyên nghiệp</p>
+                  <h3 className="font-heading font-bold text-slate-800 text-lg">Tạo ảnh sản phẩm bằng AI</h3>
+                  <p className="text-xs text-slate-500">Sản phẩm: <span className="font-semibold text-slate-700">{name || 'Chưa có tên'}</span></p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowImageModal(false)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 transition-colors flex items-center justify-center">&times;</button>
@@ -627,140 +648,123 @@ export default function ProductForm({
 
             {/* Body: Two Columns */}
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-              {/* Left: Form */}
-              <div className="md:w-[52%] p-6 overflow-y-auto border-r border-slate-100 flex flex-col gap-5">
+              {/* Left: Controls */}
+              <div className="md:w-[48%] p-6 overflow-y-auto border-r border-slate-100 flex flex-col gap-4">
+                {/* Yêu cầu */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1"><span className="text-brand-green">✦</span> Tên sản phẩm</label>
-                  <input type="text" placeholder="VD: Trà sen Tây Hồ" value={name} onChange={e => setName(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-slate-800 text-sm" />
+                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block">📝 Mô tả phong cách ảnh</label>
+                  <textarea placeholder="VD: Nền gỗ, ánh sáng ấm, phong cách tối giản..." value={aiRequirements} onChange={e => setAiRequirements(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-slate-800 text-sm min-h-[70px] resize-y" />
                 </div>
 
+                {/* Kích thước */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1"><span className="text-brand-green">✦</span> Xuất xứ</label>
-                  <input type="text" placeholder="VD: Tây Hồ, Hà Nội" value={origin} onChange={e => setOrigin(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-slate-800 text-sm" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1"><span className="text-brand-green">✦</span> Đặc điểm nổi bật</label>
-                  <textarea placeholder="VD: Hương thơm thanh khiết, vị ngọt hậu, đóng gói thủ công..." value={aiHighlights} onChange={e => setAiHighlights(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-slate-800 text-sm min-h-[70px] resize-y" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1"><span className="text-brand-green">✦</span> Kích thước ảnh</label>
+                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block">📐 Kích thước</label>
                   <div className="flex bg-slate-100 rounded-lg p-1 gap-1">
-                    <button type="button" onClick={() => setAiImageSize('1:1')} className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${aiImageSize === '1:1' ? 'bg-brand-green text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>
-                      Hình vuông (1:1)
-                    </button>
-                    <button type="button" onClick={() => setAiImageSize('16:9')} className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${aiImageSize === '16:9' ? 'bg-brand-green text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>
-                      Nằm ngang (16:9)
-                    </button>
+                    <button type="button" onClick={() => setAiImageSize('1:1')} className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${aiImageSize === '1:1' ? 'bg-brand-green text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>Vuông (1:1)</button>
+                    <button type="button" onClick={() => setAiImageSize('16:9')} className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${aiImageSize === '16:9' ? 'bg-brand-green text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>Ngang (16:9)</button>
                   </div>
                 </div>
 
+                {/* Ảnh tư liệu */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center gap-1"><span className="text-brand-green">✦</span> Yêu cầu hình ảnh</label>
-                  <textarea placeholder="VD: Phong cách tối giản, nền gỗ, ánh sáng ấm áp..." value={aiRequirements} onChange={e => setAiRequirements(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 outline-none text-slate-800 text-sm min-h-[60px] resize-y" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex items-center justify-between">
-                    <span className="flex items-center gap-1"><span className="text-brand-green">✦</span> Ảnh tư liệu (Tối đa 2 ảnh, không bắt buộc)</span>
-                    {aiReferenceFiles.length > 0 && (
-                      <button type="button" onClick={() => { setAiReferenceFiles([]); if (aiRefInputRef.current) aiRefInputRef.current.value = ""; }} className="text-[10px] text-red-500 hover:underline">Xoá tất cả</button>
-                    )}
+                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex justify-between">
+                    <span>📷 Ảnh bao bì / tư liệu (tối đa 2)</span>
+                    {aiReferenceFiles.length > 0 && <button type="button" onClick={() => { setAiReferenceFiles([]); if(aiRefInputRef.current) aiRefInputRef.current.value=""; }} className="text-[10px] text-red-500 hover:underline">Xoá</button>}
                   </label>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="file" 
-                        accept="image/*"
-                        multiple
-                        ref={aiRefInputRef}
-                        onChange={e => {
-                          const files = Array.from(e.target.files || []);
-                          setAiReferenceFiles(prev => [...prev, ...files].slice(0, 2));
-                        }}
-                        className="hidden" 
-                      />
-                      <button type="button" onClick={() => aiRefInputRef.current?.click()} className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 border-dashed text-slate-600 font-semibold py-2.5 px-4 rounded-lg transition-all text-sm flex items-center justify-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        Tải lên ảnh gốc / phác thảo...
-                      </button>
-                    </div>
-                    {aiReferenceFiles.length > 0 && (
-                      <div className="flex gap-2 flex-wrap">
-                        {aiReferenceFiles.map((file, idx) => (
-                          <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-white">
-                            <img src={URL.createObjectURL(file)} alt="Ref" className="w-full h-full object-cover" />
-                            <button type="button" onClick={() => setAiReferenceFiles(prev => prev.filter((_, i) => i !== idx))} className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center rounded-bl-sm text-[10px]">&times;</button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1">AI sẽ dựa vào những ảnh này để phân tích cấu trúc, cải thiện ánh sáng và làm đẹp (Chọn 1-2 góc ảnh).</p>
-                </div>
-
-                <div className="flex gap-3 text-xs">
-                  <div className="flex-1 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-                    <div className="font-bold text-emerald-700 mb-1">💡 Mẹo thiết kế</div>
-                    <p className="text-emerald-600">Hãy mô tả chi tiết về bao bì và bối cảnh để AI hiểu rõ hơn về phong cách bạn muốn.</p>
-                  </div>
-                  <div className="flex-1 bg-blue-50 border border-blue-100 rounded-lg p-3">
-                    <div className="font-bold text-blue-700 mb-1">📐 Định dạng</div>
-                    <p className="text-blue-600">Hình ảnh được tạo với tỉ lệ {aiImageSize}, độ phân giải cao, phù hợp cho Facebook và Instagram.</p>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex flex-col gap-3">
-                  <a 
-                    href="https://aistudio.google.com/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0?showPreview=true&showAssistant=true" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="w-full bg-[#f4f7fe] hover:bg-[#eaeffb] text-[#1a73e8] text-sm font-bold py-3 px-6 rounded-xl border border-[#d6e2fb] transition-all flex justify-center items-center gap-2 text-center"
-                  >
-                    AI hỗ trợ từ Google AI Studio ↗
-                  </a>
-                  <button
-                    type="button"
-                    onClick={generateImage}
-                    disabled={aiGenerating}
-                    className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand-green/20 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    {aiGenerating ? (
-                      <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang tạo thiết kế...</>
-                    ) : (<><span>🎨</span> Bắt đầu sáng tạo<span className="ml-1">›</span></>)}
+                  <input type="file" accept="image/*" multiple ref={aiRefInputRef} onChange={e => { const f = Array.from(e.target.files||[]); setAiReferenceFiles(prev => [...prev,...f].slice(0,2)); }} className="hidden" />
+                  <button type="button" onClick={() => aiRefInputRef.current?.click()} className="w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 text-slate-500 font-medium py-2.5 rounded-xl transition-all text-sm flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg> Tải ảnh lên...
                   </button>
+                  {aiReferenceFiles.length > 0 && (
+                    <div className="flex gap-2 mt-2">
+                      {aiReferenceFiles.map((file, idx) => (
+                        <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-white">
+                          <img src={URL.createObjectURL(file)} alt="Ref" className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => setAiReferenceFiles(prev => prev.filter((_,i) => i!==idx))} className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center rounded-bl text-[10px]">&times;</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-slate-400 mt-1">AI sẽ phân tích ảnh gốc để tạo ảnh mới chính xác hơn.</p>
                 </div>
+
+                {/* Nút tạo */}
+                <button type="button" onClick={generateImage} disabled={aiGenerating || !name} className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand-green/20 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2">
+                  {aiGenerating ? (
+                    <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang tạo...</>
+                  ) : (<><span>✨</span> {aiHistory.length > 0 ? 'Tạo lại phiên bản mới' : 'Bắt đầu tạo ảnh'}</>)}
+                </button>
+
+                {/* Lịch sử & so sánh */}
+                {aiHistory.length > 1 && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                    <div className="text-xs font-bold text-blue-700 mb-2">🔄 So sánh các phiên bản ({aiHistory.length} ảnh)</div>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {aiHistory.map((img, idx) => (
+                        <button key={idx} type="button" onClick={() => { setAiHistoryIdx(idx); setGeneratedImgBase64(img); }} className={`w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${aiHistoryIdx === idx ? 'border-brand-green shadow-md scale-105' : 'border-slate-200 opacity-60 hover:opacity-100'}`}>
+                          <img src={img} alt={`V${idx+1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right: Preview */}
-              <div className="md:w-[48%] bg-slate-50 p-6 overflow-y-auto flex flex-col">
+              <div className="md:w-[52%] bg-slate-50 p-6 overflow-y-auto flex flex-col">
                 {!generatedImgBase64 && !aiGenerating ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
                     <div className="w-16 h-16 bg-slate-200/60 rounded-2xl flex items-center justify-center mb-5">
                       <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     </div>
-                    <h4 className="font-heading font-bold text-slate-500 text-lg mb-2">Chưa có thiết kế</h4>
-                    <p className="text-sm text-slate-400 max-w-xs">Điền thông tin bên trái và nhấn nút &ldquo;Bắt đầu sáng tạo&rdquo; để xem kết quả.</p>
+                    <h4 className="font-heading font-bold text-slate-500 text-lg mb-2">Chưa có ảnh</h4>
+                    <p className="text-sm text-slate-400 max-w-xs">Điền thông tin bên trái và nhấn &ldquo;Bắt đầu tạo ảnh&rdquo;.</p>
                   </div>
                 ) : aiGenerating ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
                     <svg className="w-10 h-10 animate-spin text-brand-green mb-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    <h4 className="font-heading font-bold text-slate-600 text-lg">AI đang vẽ thiết kế...</h4>
-                    <p className="text-sm text-slate-400 mt-1">Quá trình này có thể mất 15-45 giây</p>
+                    <h4 className="font-heading font-bold text-slate-600 text-lg">AI đang tạo ảnh...</h4>
+                    <p className="text-sm text-slate-400 mt-1">Khoảng 15-45 giây</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col flex-1">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-xs font-bold uppercase tracking-widest text-brand-green">Thiết kế đã tạo</h4>
-                    </div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-3 flex-1 flex items-center justify-center">
-                      <img src={generatedImgBase64} alt="AI Generated" className="max-w-full max-h-[50vh] rounded-lg shadow-sm object-contain" />
-                    </div>
-                    <div className="flex gap-3 mt-4">
+                  <div className="flex flex-col flex-1 gap-4">
+                    {/* Before / After */}
+                    {aiReferenceFiles.length > 0 && (
+                      <div className="flex gap-3">
+                        <div className="flex-1">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 text-center">Ảnh gốc</div>
+                          <div className="bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-center aspect-square">
+                            <img src={URL.createObjectURL(aiReferenceFiles[0])} alt="Original" className="max-w-full max-h-full rounded-lg object-contain" />
+                          </div>
+                        </div>
+                        <div className="flex items-center text-slate-300 text-2xl font-light pt-5">→</div>
+                        <div className="flex-1">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-brand-green mb-1.5 text-center">AI đã tạo</div>
+                          <div className="bg-white border border-brand-green/30 rounded-xl p-2 flex items-center justify-center aspect-square">
+                            <img src={generatedImgBase64} alt="AI" className="max-w-full max-h-full rounded-lg object-contain" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Full preview nếu không có ảnh gốc */}
+                    {aiReferenceFiles.length === 0 && (
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-brand-green mb-1.5">
+                          Phiên bản {aiHistoryIdx + 1}{aiHistory.length > 1 ? ` / ${aiHistory.length}` : ''}
+                        </div>
+                        <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-center">
+                          <img src={generatedImgBase64} alt="AI Generated" className="max-w-full max-h-[45vh] rounded-lg shadow-sm object-contain" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-3 mt-auto">
                       <button type="button" onClick={applyGeneratedImage} className="flex-1 bg-brand-green hover:bg-brand-green-dark text-white font-bold py-2.5 rounded-xl transition-all text-sm">✓ Sử dụng ảnh này</button>
                       <button type="button" onClick={generateImage} disabled={aiGenerating} className="bg-white border border-slate-200 hover:border-brand-green text-slate-600 hover:text-brand-green font-semibold py-2.5 px-4 rounded-xl transition-all text-sm">↻ Tạo lại</button>
                     </div>
+                    {aiHistory.length > 0 && <p className="text-[10px] text-slate-400 text-center">Không ưng? Nhấn &ldquo;Tạo lại&rdquo; hoặc chỉnh mô tả bên trái để thử phong cách khác.</p>}
                   </div>
                 )}
               </div>

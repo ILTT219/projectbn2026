@@ -11,14 +11,22 @@ import Link from "next/link"
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [editing, setEditing] = useState<Product | null>(null)
+  const [fetchError, setFetchError] = useState('')
 
   const fetchProducts = async () => {
+    setFetchError('')
     try {
       const res = await fetch('/api/admin/products', { credentials: 'same-origin' })
       const data = await res.json()
-      setProducts(data.data || [])
-    } catch (err) {
+      if (res.ok) {
+        setProducts(data.data || [])
+      } else {
+        setFetchError(data.error || `Lỗi ${res.status}`)
+        console.error('Admin products API error:', data)
+      }
+    } catch (err: any) {
       console.error('fetch products error', err)
+      setFetchError('Lỗi kết nối: ' + err.message)
     }
   }
 
@@ -113,6 +121,12 @@ export default function AdminProductsPage() {
           >
             ✕ Đóng
           </button>
+        </div>
+      )}
+
+      {fetchError && (
+        <div className="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 mb-6 text-sm font-semibold">
+          ⚠️ {fetchError}
         </div>
       )}
 

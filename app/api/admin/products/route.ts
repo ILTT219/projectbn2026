@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 
     const fullResult = await supabaseAdmin
       .from('products')
-      .select('*, users:seller_id(email, name), product_reviews(rating, sentiment)')
+      .select('*, users:seller_id(email), product_reviews(rating, sentiment)')
       .order('id', { ascending: false })
 
     if (fullResult.error) {
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       // Fallback: lấy sản phẩm không kèm reviews
       const simpleResult = await supabaseAdmin
         .from('products')
-        .select('*, users:seller_id(email, name)')
+        .select('*, users:seller_id(email)')
         .order('id', { ascending: false })
 
       if (simpleResult.error) {
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
         reviewCount,
         majoritySentiment,
         sellerEmail: product.users?.email || 'N/A',
-        sellerName: product.users?.name || product.users?.email || 'Hệ thống'
+        sellerName: product.users?.email || 'Hệ thống'
       }
     });
 

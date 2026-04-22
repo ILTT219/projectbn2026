@@ -13,10 +13,12 @@ export default function AdminPage() {
   // States cho Người chờ duyệt
   const [pendingUsers, setPendingUsers] = useState<any[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
+  const [errorUsers, setErrorUsers] = useState('')
 
   // States cho Sản phẩm chờ duyệt
   const [pendingProducts, setPendingProducts] = useState<any[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+  const [errorProducts, setErrorProducts] = useState('')
   const [previewProduct, setPreviewProduct] = useState<any | null>(null)
 
   // States cho Tạo QTV
@@ -48,19 +50,35 @@ export default function AdminPage() {
 
   const fetchUsers = async () => {
     setLoadingUsers(true)
+    setErrorUsers('')
     try {
       const res = await fetch('/api/admin/users')
       const result = await res.json()
-      if (res.ok) setPendingUsers(result.data || [])
+      if (res.ok) {
+        setPendingUsers(result.data || [])
+      } else {
+        setErrorUsers(result.error || `Lỗi ${res.status}`)
+        console.error('fetchUsers error:', result)
+      }
+    } catch(e: any) {
+      setErrorUsers('Lỗi kết nối: ' + e.message)
     } finally { setLoadingUsers(false) }
   }
 
   const fetchProducts = async () => {
     setLoadingProducts(true)
+    setErrorProducts('')
     try {
       const res = await fetch('/api/admin/products')
       const result = await res.json()
-      if (res.ok) setPendingProducts(result.data || [])
+      if (res.ok) {
+        setPendingProducts(result.data || [])
+      } else {
+        setErrorProducts(result.error || `Lỗi ${res.status}`)
+        console.error('fetchProducts error:', result)
+      }
+    } catch(e: any) {
+      setErrorProducts('Lỗi kết nối: ' + e.message)
     } finally { setLoadingProducts(false) }
   }
 
@@ -205,6 +223,7 @@ export default function AdminPage() {
         {/* TAB USERS */}
         {activeTab === 'users' && (
            <div>
+             {errorUsers && <div className="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 mb-4 text-sm font-semibold">⚠️ {errorUsers}</div>}
              {loadingUsers ? <p>Đang tải...</p> : pendingUsers.length === 0 ? <p className="text-slate-500">Tuyệt vời, không có ai đang chờ duyệt cả!</p> : (
                <div className="flex flex-col gap-4">
                  {pendingUsers.map(u => {
@@ -238,6 +257,7 @@ export default function AdminPage() {
         {/* TAB PRODUCTS */}
         {activeTab === 'products' && (
            <div>
+             {errorProducts && <div className="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 mb-4 text-sm font-semibold">⚠️ {errorProducts}</div>}
              {loadingProducts ? <p>Đang tải...</p> : pendingProducts.length === 0 ? <p className="text-slate-500">Gian hàng sạch sẽ, chưa có sản phẩm nào cần duyệt.</p> : (
                <div className="flex flex-col gap-4">
                  {pendingProducts.map(p => (
