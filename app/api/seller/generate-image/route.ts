@@ -87,35 +87,72 @@ export async function POST(req: Request) {
       translateToEnglish(location || 'Bắc Ninh, Vietnam'),
     ]);
 
-    const basePrompt = referenceImagesBase64.length > 0
-      ? `ROLE: You are a professional product photographer. Your ONLY task is to place the EXACT product from the reference image onto a new background with improved lighting.
+    const basePrompt = `Bạn là hệ thống xử lý và tổng hợp ảnh sản phẩm chuyên nghiệp cho sản phẩm OCOP Bắc Ninh.
+Nhiệm vụ:
+Kết hợp HAI ảnh sản phẩm đầu vào thành MỘT ảnh hoàn chỉnh, tự nhiên và chuyên nghiệp.
+GIAI ĐOẠN 1 — PHÂN TÍCH
+• Xác định sản phẩm chính trong mỗi ảnh
+• Xác định góc nhìn, ánh sáng, tỉ lệ của từng sản phẩm
+• Đảm bảo mỗi ảnh có sản phẩm rõ ràng
+• ảnh chụp gần sản phẩm
+Nếu không xác định được sản phẩm trong bất kỳ ảnh nào:
+→ Trả về:
+{
+"status": "rejected",
+"reason": "Không xác định được sản phẩm rõ ràng"
+}
+GIAI ĐOẠN 2 — TÁCH NỀN (BẮT BUỘC)
+• Tách nền của cả hai ảnh
+• Giữ lại sản phẩm với độ chính xác cao
+• Không làm mất chi tiết viền, không làm mờ sản phẩm
+GIAI ĐOẠN 3 — GHÉP SẢN PHẨM
+• Đặt hai sản phẩm vào cùng một bố cục hợp lý:
+o Có thể cạnh nhau, tương tác hoặc bổ trợ nhau
+o Cân đối về kích thước và tỉ lệ
+o Không chồng lấn bất hợp lý
+o Tuyệt đối không thay đổi chi tiết sản phẩm
+• Điều chỉnh:
+o Góc nhìn (perspective) để thống nhất
+o Ánh sáng và hướng bóng đổ
+o Tỉ lệ kích thước thực tế
+GIAI ĐOẠN 4 — THAY NỀN (THEO NGỮ CẢNH)
+• Tạo nền mới phù hợp với:
+o Loại sản phẩm (${productName})
+o Ngữ cảnh sử dụng (${requirements})
+o Văn hóa địa phương (ví dụ: Việt Nam, phong cách đời sống, màu sắc quen thuộc)
+Ví dụ:
+• Đồ ăn → bối cảnh bàn ăn Việt
+• Mỹ phẩm → nền sạch, sang trọng, tối giản
+• Đồ gia dụng → không gian nhà ở thực tế
 
-ABSOLUTE RULES — VIOLATION = FAILURE:
-1. The product/object MUST be pixel-perfect identical to the reference. DO NOT alter, redraw, or reimagine it.
-2. DO NOT change: shape, proportions, colors, textures, text, labels, logos, packaging design, material appearance.
-3. DO NOT add: decorations, patterns, elements, text, watermarks, or anything not in the original.
-4. DO NOT remove any part of the original product.
-
-WHAT YOU MAY CHANGE (AND ONLY THIS):
-- Background: Replace with ${requirementsEn || 'clean, minimal studio background'}.
-- Lighting: Professional studio lighting, soft shadows, cinematic quality.
-- Camera angle: Keep same angle as reference.
-
-Product: ${productNameEn}. Origin: ${locationEn}.
-Output: 8k photorealistic DSLR quality. The product must look EXACTLY like a photograph of the real item.`
-      : `ROLE: Expert commercial product photographer for Vietnamese OCOP artisan products.
-
-CREATE: A photorealistic product photo of "${productNameEn}" — a Vietnamese OCOP product from ${locationEn}.
-
-RULES:
-1. NO fictional text, NO watermarks, NO logos, NO added typography.
-2. Product must look realistic and authentic — NOT over-stylized or cartoonish.
-3. Clean, professional composition with the product as the centerpiece.
-
-STYLE: ${requirementsEn || 'Minimal white studio background, soft natural lighting'}.
-FEATURES: ${highlightsEn}.
-
-Output: 8k DSLR photorealistic, cinematic studio lighting, masterpiece quality.`;
+GIAI ĐOẠN 5 — RÀNG BUỘC NGHIÊM NGẶT
+TUYỆT ĐỐI KHÔNG ĐƯỢC:
+• Không được thay đổi hình dạng, chi tiết sản phẩm ở cả 2 ảnh
+• Không được thêm hoặc xóa chi tiết sản phẩm
+• Không được làm biến dạng hoặc stylize sản phẩm
+• Không được hay đổi màu sắc thật của sản phẩm
+QUY TẮC QUAN TRỌNG:
+• Giữ nguyên 100% chi tiết sản phẩm từ ảnh gốc
+• Chỉ được xử lý nền, ánh sáng, và bố cục
+GIAI ĐOẠN 6 — HOÀN THIỆN
+• Làm ảnh trông tự nhiên, không lộ dấu ghép
+• Ánh sáng đồng nhất
+• Bóng đổ hợp lý
+• Màu sắc hài hòa tổng thể
+OUTPUT
+{
+"status": "success",
+"actions": [
+"background_removed",
+"products_combined",
+"new_background_applied",
+"lighting_adjusted"
+],
+"note": "Giữ nguyên chi tiết sản phẩm"
+}
+QUY TẮC CUỐI
+Ưu tiên tạo ảnh tự nhiên, chân thực như ảnh chụp thật.
+Nếu việc ghép làm ảnh hưởng đến tính toàn vẹn sản phẩm: Trả về ảnh gốc với nền mới.`;
 
     // If reference image provided, try Gemini first (supports image input)
     if (referenceImagesBase64.length > 0 && process.env.GEMINI_API_KEY) {
@@ -226,7 +263,7 @@ Output: 8k DSLR photorealistic, cinematic studio lighting, masterpiece quality.`
     }
 
     // 2. Pollinations.ai — free image generation (shorter prompt for URL compatibility)
-    const shortPrompt = `Professional product photography of ${productNameEn}, ${requirementsEn}, Vietnamese OCOP product, studio lighting, 8k, clean background, photorealistic`;
+    const shortPrompt = `A beautiful, clean, EMPTY background for a product. ${requirementsEn || 'minimalism'}, professional studio lighting, soft shadows. STRICT RULE: NO PRODUCTS, NO OBJECTS, COMPLETELY EMPTY IN THE CENTER. 8k, photorealistic background only`;
     const dimensions = aspectRatio === '16:9' ? 'width=1280&height=720' : 'width=1024&height=1024';
     const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(shortPrompt)}?${dimensions}&seed=${Date.now()}&nologo=true&model=flux-realism`;
 
@@ -256,7 +293,7 @@ Output: 8k DSLR photorealistic, cinematic studio lighting, masterpiece quality.`
 
     // 2b. Pollinations fallback with flux model
     try {
-      const simplePrompt = `${productNameEn} product photo, clean white background, professional lighting`;
+      const simplePrompt = `Empty product photography background. STRICT RULE: NO PRODUCT, NO OBJECTS. Only background and lighting. ${requirementsEn || 'clean studio'}.`;
       const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(simplePrompt)}?width=1024&height=1024&seed=${Date.now()}&nologo=true&model=flux`;
       const controller2 = new AbortController();
       const timeout2 = setTimeout(() => controller2.abort(), 60000);

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
+import { removeBackground } from "@imgly/background-removal"
 
 export interface Product {
   id?: number
@@ -83,84 +84,12 @@ export default function ProductForm({
   const [aiRefWarning, setAiRefWarning] = useState("")
   const [aiRefValidating, setAiRefValidating] = useState(false)
 
-  // Kiểm tra chất lượng ảnh tư liệu: kích thước, độ phân giải, độ mờ
+  // Bỏ qua kiểm tra chất lượng ảnh tư liệu theo yêu cầu
   const validateAndAddRefImages = async (files: File[]) => {
     setAiRefWarning("")
     setAiRefValidating(true)
-    const validFiles: File[] = []
-
-    for (const file of files) {
-      // 1. Kiểm tra kích thước file (< 50KB → quá nhỏ/mờ)
-      if (file.size < 50000) {
-        setAiRefWarning(`❌ Ảnh "${file.name}" quá nhỏ (${(file.size/1024).toFixed(0)}KB). Cần ảnh rõ nét ≥ 50KB.`)
-        setAiRefValidating(false)
-        return
-      }
-
-      // 2. Kiểm tra độ phân giải (< 300x300 → quá mờ)
-      try {
-        const valid = await new Promise<boolean>((resolve) => {
-          const img = new Image()
-          img.onload = () => {
-            if (img.width < 300 || img.height < 300) {
-              setAiRefWarning(`❌ Ảnh "${file.name}" quá nhỏ (${img.width}x${img.height}px). Cần ảnh ≥ 300x300px.`)
-              resolve(false)
-              return
-            }
-
-            // 3. Kiểm tra độ mờ bằng Laplacian variance (canvas)
-            try {
-              const canvas = document.createElement('canvas')
-              const size = 200 // resize nhỏ để tính nhanh
-              canvas.width = size
-              canvas.height = size
-              const ctx = canvas.getContext('2d')!
-              ctx.drawImage(img, 0, 0, size, size)
-              const imageData = ctx.getImageData(0, 0, size, size)
-              const data = imageData.data
-
-              // Chuyển sang grayscale và tính Laplacian variance
-              const gray: number[] = []
-              for (let i = 0; i < data.length; i += 4) {
-                gray.push(0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2])
-              }
-
-              let laplacianSum = 0
-              let count = 0
-              for (let y = 1; y < size - 1; y++) {
-                for (let x = 1; x < size - 1; x++) {
-                  const idx = y * size + x
-                  const lap = gray[idx-size] + gray[idx+size] + gray[idx-1] + gray[idx+1] - 4 * gray[idx]
-                  laplacianSum += lap * lap
-                  count++
-                }
-              }
-              const variance = laplacianSum / count
-
-              // Ngưỡng: < 50 → quá mờ
-              if (variance < 50) {
-                setAiRefWarning(`❌ Ảnh "${file.name}" bị mờ. Vui lòng chọn ảnh rõ nét hơn.`)
-                resolve(false)
-                return
-              }
-            } catch { /* canvas error — skip blur check */ }
-
-            resolve(true)
-          }
-          img.onerror = () => {
-            setAiRefWarning(`❌ Không thể đọc file "${file.name}". Vui lòng chọn ảnh khác.`)
-            resolve(false)
-          }
-          img.src = URL.createObjectURL(file)
-        })
-        if (valid) validFiles.push(file)
-        else { setAiRefValidating(false); return }
-      } catch {
-        setAiRefWarning(`❌ Lỗi kiểm tra ảnh "${file.name}".`)
-        setAiRefValidating(false)
-        return
-      }
-    }
+    
+    const validFiles = files;
 
     setAiReferenceFiles(prev => [...prev, ...validFiles].slice(0, 2))
     setAiRefValidating(false)
@@ -257,42 +186,117 @@ export default function ProductForm({
       alert("Vui lòng điền Tên sản phẩm để tạo ảnh mô phỏng.")
       return
     }
+    if (aiReferenceFiles.length === 0) {
+      alert("Vui lòng tải lên ít nhất 1 ảnh bao bì sản phẩm làm vật thể chính.")
+      return
+    }
     setAiGenerating(true)
     setGeneratedImgBase64("")
     try {
-      let res: Response
-      if (aiReferenceFiles.length > 0) {
-        const formData = new FormData()
-        formData.append('productName', name)
-        formData.append('highlights', name)
-        formData.append('requirements', aiRequirements)
-        formData.append('location', origin)
-        formData.append('aspectRatio', aiImageSize)
-        formData.append('referenceImage1', aiReferenceFiles[0])
-        if (aiReferenceFiles.length > 1) formData.append('referenceImage2', aiReferenceFiles[1])
-        res = await fetch(`${apiPrefix}/generate-image`, { method: 'POST', body: formData })
-      } else {
-        res = await fetch(`${apiPrefix}/generate-image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productName: name, highlights: name, requirements: aiRequirements, location: origin, aspectRatio: aiImageSize })
-        })
-      }
-      const data = await res.json()
-      if (data.image) {
-        setGeneratedImgBase64(data.image)
-        setAiHistory(prev => { const next = [...prev, data.image]; setAiHistoryIdx(next.length - 1); return next; })
+      // 1. Khởi chạy 2 tác vụ song song: Gọi API lấy phông nền AI & Tách nền ảnh cục bộ
+      const formData = new FormData()
+      formData.append('productName', name)
+      formData.append('highlights', name)
+      formData.append('requirements', aiRequirements)
+      formData.append('location', origin)
+      formData.append('aspectRatio', aiImageSize)
+      formData.append('referenceImage1', aiReferenceFiles[0])
+      if (aiReferenceFiles.length > 1) formData.append('referenceImage2', aiReferenceFiles[1])
+
+      const apiPromise = fetch(`${apiPrefix}/generate-image`, { method: 'POST', body: formData }).then(r => r.json())
+      
+      const removalPromises = aiReferenceFiles.slice(0, 2).map(file => 
+        removeBackground(file, { output: { format: 'image/png' } })
+          .then(blob => createImageBitmap(blob))
+      );
+
+      const [data, ...productBitmaps] = await Promise.all([apiPromise, ...removalPromises]);
+
+      // 2. Tải phông nền AI (nếu có) hoặc dùng phông mặc định nếu AI sập (rate limit/timeout)
+      let bgBitmap: ImageBitmap | null = null;
+      if (data && data.image) {
         try {
-          const resObj = await fetch(data.image)
-          const blob = await resObj.blob()
-          const file = new File([blob], `ai-avatar-${Date.now()}.png`, { type: 'image/png' })
-          setRepresentativeFile(file)
-        } catch (e) { console.error("Failed to parse base64 to file", e) }
-      } else {
-        alert(data.error || "Tạo ảnh lỗi.")
+          const bgRes = await fetch(data.image)
+          const bgBlob = await bgRes.blob()
+          bgBitmap = await createImageBitmap(bgBlob)
+        } catch (e) {
+          console.error("Lỗi khi tải ảnh phông nền từ AI, sử dụng phông mặc định", e)
+        }
       }
+
+      // 3. Ghép ảnh bằng Canvas
+      const canvas = document.createElement('canvas')
+      canvas.width = 1024
+      canvas.height = 1024
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error("Could not get canvas context")
+
+      if (bgBitmap) {
+        // Vẽ nền AI
+        ctx.drawImage(bgBitmap, 0, 0, canvas.width, canvas.height)
+      } else {
+        // Fallback: Vẽ một gradient studio đẹp mắt nếu AI bị sập
+        const gradient = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width);
+        gradient.addColorStop(0, '#f8f9fa');
+        gradient.addColorStop(1, '#e9ecef');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Vẽ sản phẩm
+      if (productBitmaps.length === 1) {
+        // Căn giữa 1 sản phẩm
+        const prod = productBitmaps[0]
+        const scale = Math.min((canvas.width * 0.6) / prod.width, (canvas.height * 0.6) / prod.height)
+        const w = prod.width * scale
+        const h = prod.height * scale
+        const x = (canvas.width - w) / 2
+        const y = (canvas.height - h) / 2 + 50 // Dịch xuống một chút cho tự nhiên
+        
+        // Vẽ bóng mờ đổ xuống nền
+        ctx.shadowColor = 'rgba(0,0,0,0.4)'
+        ctx.shadowBlur = 40
+        ctx.shadowOffsetY = 20
+        ctx.drawImage(prod, x, y, w, h)
+        ctx.shadowColor = 'transparent' // Reset shadow
+      } else if (productBitmaps.length === 2) {
+        // Cạnh nhau cho 2 sản phẩm
+        const prod1 = productBitmaps[0]
+        const prod2 = productBitmaps[1]
+        
+        const scale1 = Math.min((canvas.width * 0.4) / prod1.width, (canvas.height * 0.5) / prod1.height)
+        const w1 = prod1.width * scale1
+        const h1 = prod1.height * scale1
+        const x1 = (canvas.width / 2) - w1 - 20
+        const y1 = (canvas.height - h1) / 2 + 50
+        
+        const scale2 = Math.min((canvas.width * 0.4) / prod2.width, (canvas.height * 0.5) / prod2.height)
+        const w2 = prod2.width * scale2
+        const h2 = prod2.height * scale2
+        const x2 = (canvas.width / 2) + 20
+        const y2 = (canvas.height - h2) / 2 + 50
+
+        ctx.shadowColor = 'rgba(0,0,0,0.4)'
+        ctx.shadowBlur = 40
+        ctx.shadowOffsetY = 20
+        ctx.drawImage(prod1, x1, y1, w1, h1)
+        ctx.drawImage(prod2, x2, y2, w2, h2)
+        ctx.shadowColor = 'transparent'
+      }
+
+      const finalDataUrl = canvas.toDataURL('image/jpeg', 0.95)
+      setGeneratedImgBase64(finalDataUrl)
+      setAiHistory(prev => { const next = [...prev, finalDataUrl]; setAiHistoryIdx(next.length - 1); return next; })
+      
+      try {
+        const resObj = await fetch(finalDataUrl)
+        const finalBlob = await resObj.blob()
+        const file = new File([finalBlob], `ai-avatar-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        setRepresentativeFile(file)
+      } catch (e) { console.error("Failed to parse canvas to file", e) }
     } catch (err) {
-      alert("Lỗi khi gọi hệ thống AI Image.")
+      console.error(err)
+      alert("Lỗi khi xử lý tách nền hoặc ghép ảnh AI.")
     } finally {
       setAiGenerating(false)
     }
@@ -784,15 +788,26 @@ export default function ProductForm({
                       ))}
                     </div>
                   )}
-                  <p className="text-[10px] text-slate-400 mt-1">AI chỉ thay đổi nền & ánh sáng, giữ nguyên 100% sản phẩm gốc.</p>
+                  <p className="text-[10px] text-slate-400 mt-1">AI chỉ thay đổi background, ánh sáng, độ nét, giữ nguyên 100% vật thể chính.</p>
                 </div>
 
                 {/* Nút tạo */}
-                <button type="button" onClick={generateImage} disabled={aiGenerating || !name} className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand-green/20 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2">
-                  {aiGenerating ? (
-                    <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang tạo...</>
-                  ) : (<><span>✨</span> {aiHistory.length > 0 ? 'Tạo lại phiên bản mới' : 'Bắt đầu tạo ảnh'}</>)}
-                </button>
+                <div className="mt-2 flex flex-col gap-3">
+                  <a 
+                    href="https://aistudio.google.com/apps/80592c7c-676c-4ea4-9785-d2a6a2fd55b0?showPreview=true&showAssistant=true" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="w-full bg-[#f4f7fe] hover:bg-[#eaeffb] text-[#1a73e8] text-sm font-bold py-3 px-6 rounded-xl border border-[#d6e2fb] transition-all flex justify-center items-center gap-2 text-center"
+                  >
+                    AI hỗ trợ từ Google AI Studio ↗
+                  </a>
+                  <button type="button" onClick={generateImage} disabled={aiGenerating || !name || aiReferenceFiles.length === 0} className="w-full bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand-green/20 transition-all flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                    {aiGenerating ? (
+                      <><svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang tạo...</>
+                    ) : (<><span>✨</span> {aiHistory.length > 0 ? 'Tạo lại phiên bản mới' : 'Bắt đầu tạo ảnh'}</>)}
+                  </button>
+                  {aiReferenceFiles.length === 0 && <p className="text-[10px] text-red-500 text-center">Vui lòng tải lên ít nhất 1 ảnh gốc để tạo.</p>}
+                </div>
 
                 {/* Lịch sử & so sánh */}
                 {aiHistory.length > 1 && (

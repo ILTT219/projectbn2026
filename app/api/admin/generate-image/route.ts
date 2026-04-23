@@ -97,35 +97,16 @@ export async function POST(req: Request) {
     }
     
     // Tích hợp nguyên tắc từ prompt-tu-lieu vào prompt tạo ảnh
-    const promptText = visualDescription
-      ? `ROLE: Professional product photographer. Your ONLY task is to place the EXACT product onto a new background.
+    const promptText = `ROLE: Professional environment and background designer.
+TASK: Create a beautiful, empty background environment for product photography.
+PRODUCT CONTEXT: This background will be used for a product named "${data.productName || productNameEn}".
+SCENE REQUIREMENTS: ${data.requirements || requirementsEn}.
+STYLE: Professional studio lighting, realistic, 8k, highly detailed.
 
-ABSOLUTE RULES — VIOLATION = FAILURE:
-1. Product MUST be pixel-perfect identical to reference. DO NOT alter, redraw, or reimagine it.
-2. DO NOT change: shape, proportions, colors, textures, text, labels, logos, packaging design.
-3. DO NOT add: decorations, patterns, elements, text, watermarks.
-4. DO NOT remove any part of the original product.
-
-EXACT PRODUCT TO PRESERVE: ${visualDescription}
-
-WHAT YOU MAY CHANGE (AND ONLY THIS):
-- Background: ${requirementsEn || 'clean minimal studio background'}
-- Lighting: Professional studio lighting, soft shadows
-
-Product: ${productNameEn}. Features: ${highlightsEn}.
-Output: 8k photorealistic DSLR quality.`
-      : `ROLE: Expert commercial product photographer for Vietnamese OCOP products.
-
-CREATE: A photorealistic product photo of "${productNameEn}" from ${locationEn}.
-
-RULES:
-1. NO fictional text, NO watermarks, NO logos.
-2. Product must look realistic — NOT over-stylized or cartoonish.
-3. Clean, professional composition with the product as centerpiece.
-
-STYLE: ${requirementsEn || 'Minimal white studio background, soft natural lighting'}.
-FEATURES: ${highlightsEn}.
-Output: 8k DSLR photorealistic, cinematic studio lighting.`;
+ABSOLUTE RULES:
+1. DO NOT INCLUDE ANY PRODUCTS, OBJECTS, OR TEXT IN THE IMAGE.
+2. The center of the image MUST BE COMPLETELY EMPTY so a product can be composited later.
+3. Only generate the background, surface, and lighting.`;
 
     // 1. Nếu có Leonardo AI API Key, ưu tiên dùng Leonardo
     if (process.env.LEONARDO_API_KEY) {
@@ -184,7 +165,7 @@ Output: 8k DSLR photorealistic, cinematic studio lighting.`;
     }
 
     // 2. Pollinations.ai — free image generation (shorter prompt for URL compatibility)
-    const shortPrompt = `Professional product photography of ${productNameEn}, ${requirementsEn}, Vietnamese OCOP product, studio lighting, 8k, clean background, photorealistic`;
+    const shortPrompt = `A beautiful, clean, EMPTY background for a product. ${requirementsEn || 'minimalism'}, professional studio lighting, soft shadows. STRICT RULE: NO PRODUCTS, NO OBJECTS, COMPLETELY EMPTY IN THE CENTER. 8k, photorealistic background only`;
     const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(shortPrompt)}?width=1024&height=1024&seed=${Date.now()}&nologo=true&model=flux-realism`;
 
     try {
@@ -213,7 +194,7 @@ Output: 8k DSLR photorealistic, cinematic studio lighting.`;
 
     // 2b. Pollinations fallback with flux model
     try {
-      const simplePrompt = `${productNameEn} product photo, clean white background, professional lighting`;
+      const simplePrompt = `Empty product photography background. STRICT RULE: NO PRODUCT, NO OBJECTS. Only background and lighting. ${requirementsEn || 'clean studio'}.`;
       const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(simplePrompt)}?width=1024&height=1024&seed=${Date.now()}&nologo=true&model=flux`;
       const controller2 = new AbortController();
       const timeout2 = setTimeout(() => controller2.abort(), 60000);
