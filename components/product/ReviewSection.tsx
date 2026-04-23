@@ -9,6 +9,8 @@ interface Review {
   rating: number
   comment: string | null
   created_at: string
+  seller_reply?: string | null
+  seller_reply_at?: string | null
 }
 
 interface RatingStats {
@@ -92,6 +94,50 @@ export default function ReviewSection({ productId }: { productId: number }) {
   const [name, setName] = useState('')
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
+
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState<number | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [replySubmitting, setReplySubmitting] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    // Kiểm tra seller/admin đã đăng nhập (cookie httpOnly nên phải gọi API)
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.loggedIn && (data.role === 'seller' || data.role === 'admin')) {
+          setIsLoggedIn(true)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const submitReply = async (reviewId: number) => {
+    if (!replyText.trim()) return
+    setReplySubmitting(true)
+    try {
+      const res = await fetch('/api/reviews/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ review_id: reviewId, reply: replyText }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Đã gửi phản hồi!' })
+        setReplyingTo(null)
+        setReplyText('')
+        fetchReviews()
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Lỗi gửi phản hồi' })
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Lỗi kết nối' })
+    } finally {
+      setReplySubmitting(false)
+    }
+  }
 
   const fetchReviews = async () => {
     try {
@@ -298,12 +344,67 @@ export default function ReviewSection({ productId }: { productId: number }) {
                     </div>
                   </div>
                 </div>
+                {/* Nút trả lời (chỉ hiện cho seller/admin) */}
+                {isLoggedIn && !review.seller_reply && replyingTo !== review.id && (
+                  <button
+                    onClick={() => { setReplyingTo(review.id); setReplyText('') }}
+                    className="text-xs text-brand-green hover:text-brand-green-dark font-semibold flex items-center gap-1 shrink-0 py-1 px-2 rounded-lg hover:bg-brand-green/5 transition-colors"
+                  >
+                    💬 Trả lời
+                  </button>
+                )}
               </div>
 
               {review.comment && (
                 <p className="text-slate-600 text-sm leading-relaxed mt-3 pl-[52px]">
                   {review.comment}
                 </p>
+              )}
+
+              {/* Phản hồi từ cửa hàng */}
+              {review.seller_reply && (
+                <div className="mt-3 ml-[52px] bg-emerald-50 border border-emerald-100 rounded-xl p-3.5">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-6 h-6 rounded-full bg-brand-green flex items-center justify-center">
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-800">Phản hồi từ cửa hàng</span>
+                    {review.seller_reply_at && (
+                      <span className="text-[10px] text-emerald-500">• {timeAgo(review.seller_reply_at)}</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-emerald-700 leading-relaxed">{review.seller_reply}</p>
+                </div>
+              )}
+
+              {/* Form trả lời inline */}
+              {replyingTo === review.id && (
+                <div className="mt-3 ml-[52px] border border-brand-green/20 rounded-xl p-3.5 bg-brand-green/5">
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Viết phản hồi cho đánh giá này..."
+                    className="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all resize-none"
+                    rows={2}
+                    maxLength={1000}
+                    autoFocus
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-[10px] text-slate-400">{replyText.length}/1000</span>
+                    <div className="flex gap-2">
+                      <button onClick={() => setReplyingTo(null)} className="text-xs text-slate-500 hover:text-slate-700 font-semibold py-1.5 px-3 rounded-lg hover:bg-slate-100 transition-colors">
+                        Hủy
+                      </button>
+                      <button
+                        onClick={() => submitReply(review.id)}
+                        disabled={replySubmitting || !replyText.trim()}
+                        className="text-xs bg-brand-green hover:bg-brand-green-dark text-white font-semibold py-1.5 px-4 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {replySubmitting ? 'Đang gửi...' : 'Gửi phản hồi'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           ))}

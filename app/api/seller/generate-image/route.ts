@@ -88,23 +88,34 @@ export async function POST(req: Request) {
     ]);
 
     const basePrompt = referenceImagesBase64.length > 0
-      ? `Product photography, pure product isolation. Center focus on the main object: ${productNameEn}.
-CRITICAL REQUIREMENT: The core object MUST REMAIN 100% ORIGINAL and UNTOUCHED. Do not change its shape, color, text, logo, or design. Keep it EXACTLY identical to the reference image provided.
-ONLY change the SURROUNDING BACKGROUND and LIGHTING to: ${requirementsEn}.
-Features to highlight: ${highlightsEn}. Origin vibe: ${locationEn}.
-Cinematic studio lighting, 8k resolution, photorealistic DSLR, masterpiece. NO fictional text, NO watermarks.`
-      : `CRITICAL INSTRUCTION: You are an expert Ad Agency Art Director and Graphic Designer. 
-Create a hyper-realistic, 8k masterpiece, high-end commercial product POSTER. It must look like a million-dollar advertising campaign. DSLR, photorealistic.
-RULE 1: Do NOT add any fictional text, weird fonts, or watermarks. 
-RULE 2: Create a minimal, clean, professional composition that highlights the product.
+      ? `ROLE: You are a professional product photographer. Your ONLY task is to place the EXACT product from the reference image onto a new background with improved lighting.
 
-Context details:
-- Product Theme: Vietnamese OCOP product, ${productNameEn}.
-- Origin/Vibe: ${locationEn}.
-- Key Features: ${highlightsEn}.
-- Desired Style/Background: ${requirementsEn}.
+ABSOLUTE RULES — VIOLATION = FAILURE:
+1. The product/object MUST be pixel-perfect identical to the reference. DO NOT alter, redraw, or reimagine it.
+2. DO NOT change: shape, proportions, colors, textures, text, labels, logos, packaging design, material appearance.
+3. DO NOT add: decorations, patterns, elements, text, watermarks, or anything not in the original.
+4. DO NOT remove any part of the original product.
 
-Creative, visually stunning, ad agency quality, cinematic lighting, 8k resolution.`;
+WHAT YOU MAY CHANGE (AND ONLY THIS):
+- Background: Replace with ${requirementsEn || 'clean, minimal studio background'}.
+- Lighting: Professional studio lighting, soft shadows, cinematic quality.
+- Camera angle: Keep same angle as reference.
+
+Product: ${productNameEn}. Origin: ${locationEn}.
+Output: 8k photorealistic DSLR quality. The product must look EXACTLY like a photograph of the real item.`
+      : `ROLE: Expert commercial product photographer for Vietnamese OCOP artisan products.
+
+CREATE: A photorealistic product photo of "${productNameEn}" — a Vietnamese OCOP product from ${locationEn}.
+
+RULES:
+1. NO fictional text, NO watermarks, NO logos, NO added typography.
+2. Product must look realistic and authentic — NOT over-stylized or cartoonish.
+3. Clean, professional composition with the product as the centerpiece.
+
+STYLE: ${requirementsEn || 'Minimal white studio background, soft natural lighting'}.
+FEATURES: ${highlightsEn}.
+
+Output: 8k DSLR photorealistic, cinematic studio lighting, masterpiece quality.`;
 
     // If reference image provided, try Gemini first (supports image input)
     if (referenceImagesBase64.length > 0 && process.env.GEMINI_API_KEY) {
@@ -140,7 +151,7 @@ Creative, visually stunning, ad agency quality, cinematic lighting, 8k resolutio
         }
 
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-2.0-flash-exp',
           contents: { parts },
           config: { responseModalities: ['IMAGE'] },
         });
@@ -214,23 +225,57 @@ Creative, visually stunning, ad agency quality, cinematic lighting, 8k resolutio
       }
     }
 
-    // 2. Pollinations.ai — free image generation (no reference image support)
+    // 2. Pollinations.ai — free image generation (shorter prompt for URL compatibility)
+    const shortPrompt = `Professional product photography of ${productNameEn}, ${requirementsEn}, Vietnamese OCOP product, studio lighting, 8k, clean background, photorealistic`;
     const dimensions = aspectRatio === '16:9' ? 'width=1280&height=720' : 'width=1024&height=1024';
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(basePrompt)}?${dimensions}&seed=${Date.now()}&nologo=true&model=flux-realism`;
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(shortPrompt)}?${dimensions}&seed=${Date.now()}&nologo=true&model=flux-realism`;
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await fetch(pollinationsUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; OCOPBot/1.0)' },
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (res.ok) {
         const arrayBuffer = await res.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        const ct = res.headers.get('content-type') || 'image/jpeg';
-        return NextResponse.json({ image: `data:${ct};base64,${base64}` });
+        if (arrayBuffer.byteLength > 1000) {
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          const ct = res.headers.get('content-type') || 'image/jpeg';
+          return NextResponse.json({ image: `data:${ct};base64,${base64}` });
+        }
+        console.log('Pollinations returned too small response:', arrayBuffer.byteLength);
+      } else {
+        console.log('Pollinations HTTP error:', res.status, res.statusText);
       }
     } catch (pollErr: any) {
       console.log('Pollinations error:', pollErr.message);
+    }
+
+    // 2b. Pollinations fallback with flux model
+    try {
+      const simplePrompt = `${productNameEn} product photo, clean white background, professional lighting`;
+      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(simplePrompt)}?width=1024&height=1024&seed=${Date.now()}&nologo=true&model=flux`;
+      const controller2 = new AbortController();
+      const timeout2 = setTimeout(() => controller2.abort(), 60000);
+      const res2 = await fetch(fallbackUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; OCOPBot/1.0)' },
+        signal: controller2.signal,
+      });
+      clearTimeout(timeout2);
+
+      if (res2.ok) {
+        const arrayBuffer = await res2.arrayBuffer();
+        if (arrayBuffer.byteLength > 1000) {
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          const ct = res2.headers.get('content-type') || 'image/jpeg';
+          return NextResponse.json({ image: `data:${ct};base64,${base64}` });
+        }
+      }
+    } catch (poll2Err: any) {
+      console.log('Pollinations fallback error:', poll2Err.message);
     }
 
     // Fallback: try Gemini without reference image
@@ -240,9 +285,9 @@ Creative, visually stunning, ad agency quality, cinematic lighting, 8k resolutio
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-preview-05-20',
+          model: 'gemini-2.0-flash-exp',
           contents: { parts: [{ text: basePrompt }] },
-          config: { responseModalities: ['TEXT', 'IMAGE'] },
+          config: { responseModalities: ['IMAGE'] },
         });
 
         if (response.candidates && response.candidates.length > 0) {

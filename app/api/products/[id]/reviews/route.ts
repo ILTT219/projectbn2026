@@ -16,17 +16,26 @@ export async function GET(
       return NextResponse.json({ error: 'ID không hợp lệ' }, { status: 400 })
     }
 
-    // Lấy reviews
-    const { data: reviews, error } = await db()
+    // Thử lấy reviews kèm seller_reply
+    let reviews: any[] = []
+    const { data, error } = await db()
       .from('product_reviews')
-      .select('id, product_id, reviewer_name, rating, comment, created_at')
+      .select('id, product_id, reviewer_name, rating, comment, created_at, seller_reply, seller_reply_at')
       .eq('product_id', productId)
       .order('created_at', { ascending: false })
       .limit(50)
 
     if (error) {
-      console.error('Error fetching reviews:', error)
-      return NextResponse.json({ error: 'Lỗi tải đánh giá' }, { status: 500 })
+      // Fallback: không có cột seller_reply
+      const { data: fallback } = await db()
+        .from('product_reviews')
+        .select('id, product_id, reviewer_name, rating, comment, created_at')
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      reviews = (fallback || []).map(r => ({ ...r, seller_reply: null, seller_reply_at: null }))
+    } else {
+      reviews = data || []
     }
 
     // Lấy thống kê rating
@@ -37,7 +46,7 @@ export async function GET(
       .single()
 
     return NextResponse.json({
-      reviews: reviews || [],
+      reviews,
       stats: stats || { review_count: 0, avg_rating: 0, star_5: 0, star_4: 0, star_3: 0, star_2: 0, star_1: 0 },
     })
   } catch (err: any) {

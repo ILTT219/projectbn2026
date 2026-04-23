@@ -80,6 +80,91 @@ export default function ProductForm({
   const [aiHistory, setAiHistory] = useState<string[]>([])
   const [aiHistoryIdx, setAiHistoryIdx] = useState(-1)
   const [imageWarning, setImageWarning] = useState("")
+  const [aiRefWarning, setAiRefWarning] = useState("")
+  const [aiRefValidating, setAiRefValidating] = useState(false)
+
+  // Kiểm tra chất lượng ảnh tư liệu: kích thước, độ phân giải, độ mờ
+  const validateAndAddRefImages = async (files: File[]) => {
+    setAiRefWarning("")
+    setAiRefValidating(true)
+    const validFiles: File[] = []
+
+    for (const file of files) {
+      // 1. Kiểm tra kích thước file (< 50KB → quá nhỏ/mờ)
+      if (file.size < 50000) {
+        setAiRefWarning(`❌ Ảnh "${file.name}" quá nhỏ (${(file.size/1024).toFixed(0)}KB). Cần ảnh rõ nét ≥ 50KB.`)
+        setAiRefValidating(false)
+        return
+      }
+
+      // 2. Kiểm tra độ phân giải (< 300x300 → quá mờ)
+      try {
+        const valid = await new Promise<boolean>((resolve) => {
+          const img = new Image()
+          img.onload = () => {
+            if (img.width < 300 || img.height < 300) {
+              setAiRefWarning(`❌ Ảnh "${file.name}" quá nhỏ (${img.width}x${img.height}px). Cần ảnh ≥ 300x300px.`)
+              resolve(false)
+              return
+            }
+
+            // 3. Kiểm tra độ mờ bằng Laplacian variance (canvas)
+            try {
+              const canvas = document.createElement('canvas')
+              const size = 200 // resize nhỏ để tính nhanh
+              canvas.width = size
+              canvas.height = size
+              const ctx = canvas.getContext('2d')!
+              ctx.drawImage(img, 0, 0, size, size)
+              const imageData = ctx.getImageData(0, 0, size, size)
+              const data = imageData.data
+
+              // Chuyển sang grayscale và tính Laplacian variance
+              const gray: number[] = []
+              for (let i = 0; i < data.length; i += 4) {
+                gray.push(0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2])
+              }
+
+              let laplacianSum = 0
+              let count = 0
+              for (let y = 1; y < size - 1; y++) {
+                for (let x = 1; x < size - 1; x++) {
+                  const idx = y * size + x
+                  const lap = gray[idx-size] + gray[idx+size] + gray[idx-1] + gray[idx+1] - 4 * gray[idx]
+                  laplacianSum += lap * lap
+                  count++
+                }
+              }
+              const variance = laplacianSum / count
+
+              // Ngưỡng: < 50 → quá mờ
+              if (variance < 50) {
+                setAiRefWarning(`❌ Ảnh "${file.name}" bị mờ. Vui lòng chọn ảnh rõ nét hơn.`)
+                resolve(false)
+                return
+              }
+            } catch { /* canvas error — skip blur check */ }
+
+            resolve(true)
+          }
+          img.onerror = () => {
+            setAiRefWarning(`❌ Không thể đọc file "${file.name}". Vui lòng chọn ảnh khác.`)
+            resolve(false)
+          }
+          img.src = URL.createObjectURL(file)
+        })
+        if (valid) validFiles.push(file)
+        else { setAiRefValidating(false); return }
+      } catch {
+        setAiRefWarning(`❌ Lỗi kiểm tra ảnh "${file.name}".`)
+        setAiRefValidating(false)
+        return
+      }
+    }
+
+    setAiReferenceFiles(prev => [...prev, ...validFiles].slice(0, 2))
+    setAiRefValidating(false)
+  }
 
   const repFileInputRef = useRef<HTMLInputElement>(null)
   const prodFileInputRef = useRef<HTMLInputElement>(null)
@@ -669,23 +754,37 @@ export default function ProductForm({
                 <div>
                   <label className="text-xs font-semibold text-slate-500 mb-1.5 block flex justify-between">
                     <span>📷 Ảnh bao bì / tư liệu (tối đa 2)</span>
-                    {aiReferenceFiles.length > 0 && <button type="button" onClick={() => { setAiReferenceFiles([]); if(aiRefInputRef.current) aiRefInputRef.current.value=""; }} className="text-[10px] text-red-500 hover:underline">Xoá</button>}
+                    {aiReferenceFiles.length > 0 && <button type="button" onClick={() => { setAiReferenceFiles([]); setAiRefWarning(""); if(aiRefInputRef.current) aiRefInputRef.current.value=""; }} className="text-[10px] text-red-500 hover:underline">Xoá</button>}
                   </label>
-                  <input type="file" accept="image/*" multiple ref={aiRefInputRef} onChange={e => { const f = Array.from(e.target.files||[]); setAiReferenceFiles(prev => [...prev,...f].slice(0,2)); }} className="hidden" />
-                  <button type="button" onClick={() => aiRefInputRef.current?.click()} className="w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 text-slate-500 font-medium py-2.5 rounded-xl transition-all text-sm flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg> Tải ảnh lên...
+                  <input type="file" accept="image/*" multiple ref={aiRefInputRef} onChange={e => { const f = Array.from(e.target.files||[]); if(f.length) validateAndAddRefImages(f); }} className="hidden" />
+                  <button type="button" onClick={() => aiRefInputRef.current?.click()} disabled={aiRefValidating} className="w-full bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 text-slate-500 font-medium py-2.5 rounded-xl transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                    {aiRefValidating ? (
+                      <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang kiểm tra...</>
+                    ) : (
+                      <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg> Tải ảnh lên...</>
+                    )}
                   </button>
+                  {aiRefWarning && (
+                    <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-700 font-medium flex items-start gap-1.5">
+                      <span className="text-sm leading-none">⚠️</span>
+                      <div>
+                        <div>{aiRefWarning}</div>
+                        <p className="text-[10px] text-amber-500 mt-0.5">Ảnh cần rõ nét, ≥300x300px, ≥50KB.</p>
+                      </div>
+                    </div>
+                  )}
                   {aiReferenceFiles.length > 0 && (
                     <div className="flex gap-2 mt-2">
                       {aiReferenceFiles.map((file, idx) => (
-                        <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-white">
+                        <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-green-300 bg-white">
                           <img src={URL.createObjectURL(file)} alt="Ref" className="w-full h-full object-cover" />
+                          <div className="absolute bottom-0 left-0 right-0 bg-green-600/80 text-[8px] text-white text-center py-0.5 font-bold">✓ OK</div>
                           <button type="button" onClick={() => setAiReferenceFiles(prev => prev.filter((_,i) => i!==idx))} className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center rounded-bl text-[10px]">&times;</button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <p className="text-[10px] text-slate-400 mt-1">AI sẽ phân tích ảnh gốc để tạo ảnh mới chính xác hơn.</p>
+                  <p className="text-[10px] text-slate-400 mt-1">AI chỉ thay đổi nền & ánh sáng, giữ nguyên 100% sản phẩm gốc.</p>
                 </div>
 
                 {/* Nút tạo */}

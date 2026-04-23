@@ -36,25 +36,31 @@ CẤU TRÚC NỘI DUNG:
 export const IMAGE_GENERATION_PROMPT = `
 NGUYÊN TẮC TẠO ẢNH SẢN PHẨM OCOP:
 
-BẮT BUỘC:
-1. Hình ảnh phải MÔ TẢ ĐÚNG sản phẩm được yêu cầu - KHÔNG thay đổi hình dáng cốt lõi
-2. Nếu là gốm sứ → phải giống gốm sứ thật, KHÔNG biến thành thủy tinh hay nhựa
-3. Nếu là thực phẩm → phải phản ánh đúng màu sắc tự nhiên, KHÔNG tô vẽ quá mức
-4. Nếu là thủ công mỹ nghệ → phải giữ nguyên kết cấu vật liệu (gỗ, tre, đồng...)
-5. BỐI CẢNH phù hợp: nông thôn Bắc Ninh, làng nghề, ruộng đồng, nhà cổ
+KHI CÓ ẢNH TƯ LIỆU (Reference Image):
+1. SẢN PHẨM PHẢI ĐƯỢC GIỮ NGUYÊN 100% — TUYỆT ĐỐI KHÔNG THAY ĐỔI:
+   - Hình dáng, tỷ lệ, kích thước
+   - Màu sắc, kết cấu bề mặt, vật liệu
+   - Chữ viết, nhãn mác, logo, thiết kế bao bì
+   - Bất kỳ chi tiết nào trên sản phẩm gốc
+2. CHỈ ĐƯỢC PHÉP THAY ĐỔI:
+   - Nền (background): thay nền studio, nền tự nhiên...
+   - Ánh sáng: studio chuyên nghiệp, cinematic lighting
+   - Bóng đổ: soft shadow tự nhiên
+3. TUYỆT ĐỐI CẤM:
+   - Thêm hoa văn, chi tiết không tồn tại trên sản phẩm gốc
+   - Vẽ lại hoặc "tưởng tượng" sản phẩm
+   - Thêm chữ, watermark, logo lên ảnh
+
+KHI KHÔNG CÓ ẢNH TƯ LIỆU:
+1. Tạo ảnh sản phẩm trông thực tế, chân thực
+2. Không thêm chữ, watermark, logo giả
+3. Nền sạch sẽ, tối giản hoặc bối cảnh phù hợp
+4. Màu sắc trung thực, ấm áp
 
 PHONG CÁCH ẢNH:
-- Ánh sáng tự nhiên hoặc studio chuyên nghiệp
-- Nền sạch sẽ, tối giản, hoặc bối cảnh làng nghề phù hợp
-- Không có chữ, watermark, logo trên ảnh
-- Màu sắc trung thực, ấm áp, mang cảm giác Việt Nam
+- Ánh sáng studio chuyên nghiệp hoặc tự nhiên
 - Composition cân đối, sản phẩm là trung tâm
-
-TRÁNH:
-- Biến dạng hình dáng sản phẩm
-- Thêm chi tiết không có thật (vd: thêm hoa văn không tồn tại)
-- Ảnh quá bóng bẩy mất tính chân thực
-- Bối cảnh không phù hợp (vd: sản phẩm Việt trên nền phương Tây)
+- Chất lượng 8k, photorealistic DSLR
 `
 
 /**

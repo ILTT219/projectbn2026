@@ -97,12 +97,35 @@ export async function POST(req: Request) {
     }
     
     // Tích hợp nguyên tắc từ prompt-tu-lieu vào prompt tạo ảnh
-    const promptText = 
-      `Product photography, pure product isolation. Center focus on the main object: ${productNameEn}. ` +
-      `CRITICAL REQUIREMENT: The core object MUST REMAIN 100% ORIGINAL and UNTOUCHED. Do not change its shape, color, text, logo, or design. ` +
-      (visualDescription ? `EXACT PRODUCT APPEARANCE TO MATCH: ${visualDescription}. ` : '') +
-      `ONLY change the SURROUNDING BACKGROUND and LIGHTING to: ${requirementsEn}. Features: ${highlightsEn}. ` +
-      `Cinematic studio lighting, 8k resolution, photorealistic DSLR, masterpiece. NO fictional text, NO watermarks.`;
+    const promptText = visualDescription
+      ? `ROLE: Professional product photographer. Your ONLY task is to place the EXACT product onto a new background.
+
+ABSOLUTE RULES — VIOLATION = FAILURE:
+1. Product MUST be pixel-perfect identical to reference. DO NOT alter, redraw, or reimagine it.
+2. DO NOT change: shape, proportions, colors, textures, text, labels, logos, packaging design.
+3. DO NOT add: decorations, patterns, elements, text, watermarks.
+4. DO NOT remove any part of the original product.
+
+EXACT PRODUCT TO PRESERVE: ${visualDescription}
+
+WHAT YOU MAY CHANGE (AND ONLY THIS):
+- Background: ${requirementsEn || 'clean minimal studio background'}
+- Lighting: Professional studio lighting, soft shadows
+
+Product: ${productNameEn}. Features: ${highlightsEn}.
+Output: 8k photorealistic DSLR quality.`
+      : `ROLE: Expert commercial product photographer for Vietnamese OCOP products.
+
+CREATE: A photorealistic product photo of "${productNameEn}" from ${locationEn}.
+
+RULES:
+1. NO fictional text, NO watermarks, NO logos.
+2. Product must look realistic — NOT over-stylized or cartoonish.
+3. Clean, professional composition with the product as centerpiece.
+
+STYLE: ${requirementsEn || 'Minimal white studio background, soft natural lighting'}.
+FEATURES: ${highlightsEn}.
+Output: 8k DSLR photorealistic, cinematic studio lighting.`;
 
     // 1. Nếu có Leonardo AI API Key, ưu tiên dùng Leonardo
     if (process.env.LEONARDO_API_KEY) {
@@ -160,22 +183,56 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Pollinations.ai — free image generation (Fallback to flux-realism model)
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&seed=${Date.now()}&nologo=true&model=flux-realism`;
+    // 2. Pollinations.ai — free image generation (shorter prompt for URL compatibility)
+    const shortPrompt = `Professional product photography of ${productNameEn}, ${requirementsEn}, Vietnamese OCOP product, studio lighting, 8k, clean background, photorealistic`;
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(shortPrompt)}?width=1024&height=1024&seed=${Date.now()}&nologo=true&model=flux-realism`;
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await fetch(pollinationsUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; OCOPBot/1.0)' },
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (res.ok) {
         const arrayBuffer = await res.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        const contentType = res.headers.get('content-type') || 'image/jpeg';
-        return NextResponse.json({ image: `data:${contentType};base64,${base64}` });
+        if (arrayBuffer.byteLength > 1000) {
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          const contentType = res.headers.get('content-type') || 'image/jpeg';
+          return NextResponse.json({ image: `data:${contentType};base64,${base64}` });
+        }
+        console.log('Pollinations returned too small response:', arrayBuffer.byteLength);
+      } else {
+        console.log('Pollinations HTTP error:', res.status, res.statusText);
       }
     } catch (pollErr: any) {
       console.log('Pollinations error:', pollErr.message);
+    }
+
+    // 2b. Pollinations fallback with flux model
+    try {
+      const simplePrompt = `${productNameEn} product photo, clean white background, professional lighting`;
+      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(simplePrompt)}?width=1024&height=1024&seed=${Date.now()}&nologo=true&model=flux`;
+      const controller2 = new AbortController();
+      const timeout2 = setTimeout(() => controller2.abort(), 60000);
+      const res2 = await fetch(fallbackUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; OCOPBot/1.0)' },
+        signal: controller2.signal,
+      });
+      clearTimeout(timeout2);
+
+      if (res2.ok) {
+        const arrayBuffer = await res2.arrayBuffer();
+        if (arrayBuffer.byteLength > 1000) {
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          const ct = res2.headers.get('content-type') || 'image/jpeg';
+          return NextResponse.json({ image: `data:${ct};base64,${base64}` });
+        }
+      }
+    } catch (poll2Err: any) {
+      console.log('Pollinations fallback error:', poll2Err.message);
     }
 
     // Fallback: try Gemini
@@ -185,9 +242,9 @@ export async function POST(req: Request) {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
+          model: 'gemini-2.0-flash-exp',
           contents: { parts: [{ text: promptText }] },
-          config: { imageConfig: { aspectRatio: '1:1' } },
+          config: { responseModalities: ['IMAGE'] },
         });
 
         if (response.candidates && response.candidates.length > 0) {
